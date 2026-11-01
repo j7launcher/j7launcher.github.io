@@ -4,7 +4,7 @@
  * SHEET_URL: the Google Apps Script web-app link (see apps-script/README.md). Empty = the form only
  * hands the details to WhatsApp, which always works.
  */
-const SHEET_URL = '';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyCNLr6YM_cQDx7jZAUfru8L8BaEWbhanGBJuTDWEa6KFP0HvPCnHBgclmytLaWrRRsrA/exec';
 const WHATSAPP = '60147172505';
 const CLOSES = new Date('2026-11-12T23:59:59+08:00');
 
@@ -149,6 +149,11 @@ const EN = {
   'pv.3': 'You can ask for a copy or deletion of your data any time on WhatsApp 014-717 2505, in line with the Personal Data Protection Act 2010.',
   'pv.4': 'Terms: founder prices for bookings from 3–12 Nov 2026. Payment only after compatibility is confirmed. Full refund if the app doesn\'t work on your box within 7 days of installation.',
   'foot.ind': 'Independent project · not an official Jaecoo / Chery product',
+  'm.left': 'founder slots left',
+  'm.booked': 'already booked',
+  'm.live': 'Live from the booking list',
+  'm.ends': 'Founder price ends in',
+  'pv.5': 'The booking counter on this page shows the real number from the booking list. Recent activity shows only the state and package, never names.',
 };
 
 /* Messages the script writes itself. */
@@ -165,6 +170,8 @@ const MSG = {
     phone: 'No. WhatsApp tak kelihatan betul (cth. 012-345 6789).',
     closed: 'Ditutup',
     left: (n) => (n > 0 ? `${n} daripada 30 lagi` : 'Penuh'),
+    ago: (min) => (min < 60 ? `${Math.max(1, min)} min lalu` : min < 1440 ? `${Math.floor(min / 60)} jam lalu` : `${Math.floor(min / 1440)} hari lalu`),
+    booked: (state, pkg) => `Seorang pemilik di ${state} menempah ${pkg}`,
     days: (d, h) => `${d} hari ${h} jam`,
     hours: (h, m) => `${h} jam ${m} min`,
     sending: 'Menghantar…',
@@ -184,6 +191,8 @@ const MSG = {
     phone: 'The WhatsApp number doesn\'t look right (e.g. 012-345 6789).',
     closed: 'Closed',
     left: (n) => (n > 0 ? `${n} of 30 left` : 'Full'),
+    ago: (min) => (min < 60 ? `${Math.max(1, min)} min ago` : min < 1440 ? `${Math.floor(min / 60)} h ago` : `${Math.floor(min / 1440)} days ago`),
+    booked: (state, pkg) => `An owner in ${state} booked ${pkg}`,
     days: (d, h) => `${d} days ${h} h`,
     hours: (h, m) => `${h} h ${m} min`,
     sending: 'Sending…',
@@ -193,9 +202,14 @@ const MSG = {
   },
 };
 
-let lang = 'ms';
+let lang = 'en';
 /** Founder slots left, from the Sheet; null until it answers (or without one). */
 let slotsLeft = null;
+/** Latest bookings without names (state, package, time), when the Sheet gives them. */
+let recent = [];
+const SLOTS = 30;
+/** Below this many bookings the page shows only the slots left, not "N booked". */
+const SHOW_BOOKED_FROM = 3;
 const MS = {};
 
 /* The page is written in BM; the BM text is read from it once, so both languages swap cleanly. */
@@ -220,18 +234,49 @@ function setLang(next) {
 }
 
 function showSlots() {
+  const left = slotsLeft == null ? SLOTS : slotsLeft;
+  const booked = SLOTS - left;
   if (slotsLeft != null) document.getElementById('slots').textContent = MSG[lang].left(slotsLeft);
+  document.getElementById('m-left').textContent = left;
+  document.getElementById('m-booked').textContent = booked;
+  // "0 booked" puts people off: the booked count appears once a few owners are in.
+  document.getElementById('m-booked-wrap').hidden = booked < SHOW_BOOKED_FROM;
+  const seats = document.getElementById('seats');
+  seats.setAttribute('aria-label', MSG[lang].left(left));
+  seats.innerHTML = Array.from({ length: SLOTS }, (_, i) => `<i class="${i < booked ? 'on' : ''}"></i>`).join('');
+  const list = document.getElementById('recent');
+  list.hidden = !recent.length;
+  list.innerHTML = recent.slice(0, 3).map((r) => {
+    const min = Math.round((Date.now() - new Date(r.at)) / 6e4);
+    const pkg = String(r.package || '').split(' ')[0];
+    return `<li><span class="dot"></span>${MSG[lang].booked(esc(r.state || 'Malaysia'), esc(pkg))} · <span class="ago">${MSG[lang].ago(min)}</span></li>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/** Slots left (and, when the Sheet shares it, the latest bookings without names). */
+function loadSlots() {
+  if (!SHEET_URL) return;
+  fetch(SHEET_URL).then((r) => r.json()).then((d) => {
+    if (typeof d.left === 'number') slotsLeft = d.left;
+    if (Array.isArray(d.recent)) recent = d.recent;
+    showSlots();
+  }).catch(() => { /* the counter keeps its last numbers */ });
 }
 
 /* Countdown to the founder price closing. */
 function tick() {
   const el = document.getElementById('countdown');
   const ms = CLOSES - new Date();
-  if (ms <= 0) { el.textContent = MSG[lang].closed; return; }
+  if (ms <= 0) { el.textContent = MSG[lang].closed; document.getElementById('m-count').textContent = el.textContent; return; }
   const d = Math.floor(ms / 864e5);
   const h = Math.floor((ms % 864e5) / 36e5);
   const m = Math.floor((ms % 36e5) / 6e4);
   el.textContent = d > 0 ? MSG[lang].days(d, h) : MSG[lang].hours(h, m);
+  document.getElementById('m-count').textContent = el.textContent;
 }
 
 /* Quick compatibility check. */
@@ -363,6 +408,8 @@ async function submit(e) {
   const text = [m.waIntro, '', ...body, '', m.waPhoto].join('\n');
   document.getElementById('wa-send').href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`;
   document.getElementById('ref').textContent = ref;
+  if (slotsLeft != null && slotsLeft > 0) { slotsLeft -= 1; showSlots(); }
+  setTimeout(loadSlots, 4000);
   form.hidden = true;
   const done = document.getElementById('done');
   done.hidden = false;
@@ -373,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
   captureMs();
   let saved = null;
   try { saved = localStorage.getItem('j7-lang'); } catch (e) { /* private mode */ }
-  setLang(saved || 'ms');
+  setLang(saved || 'en');
   document.querySelectorAll('.lang button').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
   ['ck-box', 'ck-android', 'ck-ram'].forEach((id) => document.getElementById(id).addEventListener('change', check));
   document.querySelectorAll('[data-pick]').forEach((a) => a.addEventListener('click', () => {
@@ -384,9 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('form').addEventListener('submit', submit);
   tick();
   setInterval(tick, 30000);
-  if (SHEET_URL) {
-    fetch(SHEET_URL).then((r) => r.json()).then((d) => {
-      if (typeof d.left === 'number') { slotsLeft = d.left; showSlots(); }
-    }).catch(() => { /* the counter just stays at 30 */ });
-  }
+  loadSlots();
+  // Fresh numbers every minute while the page is open.
+  setInterval(loadSlots, 60000);
 });

@@ -9,6 +9,7 @@
   --r:18px;
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html{scroll-behavior:smooth;scroll-padding-top:72px}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--display);font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
@@ -138,6 +139,23 @@ input[type=file]{padding:10px}
 .tick{flex-direction:row;align-items:flex-start;gap:12px;font-size:14.5px}
 .tick input{width:20px;height:20px;flex:none;margin-top:2px;accent-color:var(--accent)}
 .err{color:var(--no);font-size:15px;min-height:1px}
+.meter{margin-top:24px;border-radius:22px;padding:22px;background:linear-gradient(160deg,rgba(255,122,26,.16),rgba(255,122,26,.03) 60%),var(--card);border:1.5px solid rgba(255,122,26,.5)}
+.meter-top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.meter .big b{display:block;font-size:64px;line-height:.95;font-weight:850;letter-spacing:-.03em;color:var(--accent);font-variant-numeric:tabular-nums}
+.meter .big span,.meter .side span{font-size:15px;color:#d3d8de}
+.meter .side{text-align:right}
+.meter .side b{display:block;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums}
+.seats{display:grid;grid-template-columns:repeat(15,1fr);gap:6px;margin:18px 0 14px}
+.seats i{aspect-ratio:1;border-radius:6px;background:#26303b;border:1px solid #33404d}
+.seats i.on{background:var(--accent);border-color:var(--accent2);box-shadow:0 0 10px rgba(255,122,26,.45)}
+.meter-foot{display:flex;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.meter-foot b{color:var(--ink);font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px}
+.dot.live{background:var(--ok);box-shadow:0 0 0 0 rgba(62,207,142,.6);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(62,207,142,0)}100%{box-shadow:0 0 0 0 rgba(62,207,142,0)}}
+@media (prefers-reduced-motion:reduce){.dot.live{animation:none}}
+.recent{list-style:none;padding:12px 0 0;margin:14px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px;font-size:14.5px;color:#d3d8de}
+.recent .ago{color:var(--muted)}
 .done{margin-top:26px;background:var(--card);border:1.5px solid var(--ok);border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:12px}
 .done h3{font-size:24px}
 .done #ref{font:700 20px var(--mono);color:var(--accent)}

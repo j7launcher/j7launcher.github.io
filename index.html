@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>J7 Launcher · Pre-booking</title>
-<meta name="description" content="J7 Launcher: skrin khas untuk Android box Jaecoo J7, dengan kereta dan nombor plat anda. Pre-order founder 3–12 Nov.">
-<meta property="og:title" content="J7 Launcher · Skrin J7 anda">
-<meta property="og:description" content="Skrin khas untuk Android box Jaecoo J7: kereta & plat anda, Waze / Google Maps / TuJu, mod memandu. Founder RM99, 3–12 Nov.">
+<meta name="description" content="J7 Launcher: a custom screen for the Jaecoo J7's Android box, with your own car and plate number. Founder pre-order 3–12 Nov.">
+<meta property="og:title" content="J7 Launcher · Your J7's screen">
+<meta property="og:description" content="A custom screen for the Jaecoo J7's Android box: your car & plate, Waze / Google Maps / TuJu, driving mode. Founder price RM99, 3–12 Nov. BM / EN.">
 <meta property="og:image" content="https://j7launcher.github.io/img/share.jpg">
 <meta property="og:url" content="https://j7launcher.github.io/">
 <meta property="og:type" content="website">
@@ -23,8 +23,8 @@
   <div class="wrap bar-in">
     <a class="brand" href="#top"><span class="mark">J7</span><span>J7 Launcher</span></a>
     <nav class="lang" aria-label="Language">
-      <button type="button" data-lang="ms" aria-pressed="true">BM</button>
-      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="ms" aria-pressed="false">BM</button>
     </nav>
     <a class="btn small" href="#book" data-i18n="nav.book">Tempah</a>
   </div>
@@ -183,6 +183,19 @@
       <h2 data-i18n="book.h">Tempah slot founder</h2>
       <p class="sec-lead" data-i18n="book.lead">Tiada bayaran sekarang. Maklumat ini cukup untuk saya bina app khas untuk kereta anda.</p>
 
+      <div class="meter" id="meter" aria-live="polite">
+        <div class="meter-top">
+          <div class="big"><b id="m-left">30</b><span data-i18n="m.left">slot founder lagi</span></div>
+          <div class="side" id="m-booked-wrap" hidden><b id="m-booked">0</b><span data-i18n="m.booked">sudah ditempah</span></div>
+        </div>
+        <div class="seats" id="seats" role="img" aria-label="30"></div>
+        <div class="meter-foot">
+          <span><span class="dot live"></span><span data-i18n="m.live">Dikemas kini secara langsung</span></span>
+          <span><span data-i18n="m.ends">Harga founder tamat dalam</span> <b id="m-count">–</b></span>
+        </div>
+        <ul class="recent" id="recent" hidden></ul>
+      </div>
+
       <form id="form" novalidate>
         <fieldset>
           <legend data-i18n="g1">1 · Anda</legend>
@@ -314,6 +327,7 @@
       <p data-i18n="pv.1">Data yang dikumpul: nama, no. WhatsApp, e-mel (pilihan), negeri, maklumat kereta, nombor plat, maklumat Android box dan pilihan anda.</p>
       <p data-i18n="pv.2">Tujuan: menyemak keserasian, membina app khas untuk kereta anda, menghubungi anda dan memberi sokongan. Data disimpan dalam Google Sheet peribadi saya, tidak dijual atau dikongsi.</p>
       <p data-i18n="pv.3">Anda boleh minta salinan atau padam data anda bila-bila masa melalui WhatsApp 014-717 2505. Selaras dengan Akta Perlindungan Data Peribadi 2010.</p>
+      <p data-i18n="pv.5">Kaunter tempahan di laman ini menunjukkan jumlah sebenar daripada senarai tempahan. Aktiviti terkini hanya menunjukkan negeri dan pakej, tanpa nama.</p>
       <p data-i18n="pv.4">Terma: harga founder untuk tempahan 3–12 Nov 2026. Bayaran hanya selepas keserasian disahkan. Wang dikembalikan penuh jika app tak berfungsi pada box anda dalam 7 hari selepas dipasang.</p>
     </div>
   </section>

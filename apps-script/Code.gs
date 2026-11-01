@@ -80,9 +80,24 @@ function doPost(e) {
   }
 }
 
-/** Public: only the number of founder slots left, for the website's counter. */
+/**
+ * Public: the website's counter. Slots left, and the last few bookings with only the state, the
+ * package and the time (no names, phones or plates).
+ */
 function doGet() {
-  return json({ slots: SLOTS, left: slotsLeft() });
+  return json({ slots: SLOTS, left: slotsLeft(), recent: recentBookings() });
+}
+
+function recentBookings() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET);
+  const n = sh.getLastRow() - 1;
+  if (n <= 0) return [];
+  const from = Math.max(2, sh.getLastRow() - 9);
+  // Columns B (received), C (status), H (state), O (package).
+  return sh.getRange(from, 1, sh.getLastRow() - from + 1, 15).getValues()
+    .filter((r) => !FREED.includes(r[2]))
+    .reverse().slice(0, 3)
+    .map((r) => ({ at: new Date(r[1]).toISOString(), state: String(r[7]), package: String(r[14]).split(' ')[0] }));
 }
 
 function slotsLeft() {
