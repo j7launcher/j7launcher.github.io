@@ -5,7 +5,8 @@
  * hands the details to WhatsApp, which always works.
  */
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyCNLr6YM_cQDx7jZAUfru8L8BaEWbhanGBJuTDWEa6KFP0HvPCnHBgclmytLaWrRRsrA/exec';
-const WHATSAPP = '60147172505';
+/** Bookings and orders: the J7 Launcher WhatsApp Business number (018-716 2505). */
+const WHATSAPP = '60187162505';
 const CLOSES = new Date('2026-11-12T23:59:59+08:00');
 
 const EN = {
@@ -146,7 +147,7 @@ const EN = {
   'pv.h': 'Privacy notice & terms',
   'pv.1': 'Data collected: name, WhatsApp number, email (optional), state, car details, plate number, Android box details and your choices.',
   'pv.2': 'Purpose: checking compatibility, building the app for your car, contacting you and supporting you. Kept in my private Google Sheet, never sold or shared.',
-  'pv.3': 'You can ask for a copy or deletion of your data any time on WhatsApp 014-717 2505, in line with the Personal Data Protection Act 2010.',
+  'pv.3': 'You can ask for a copy or deletion of your data any time on WhatsApp 018-716 2505, in line with the Personal Data Protection Act 2010.',
   'pv.4': 'Terms: founder prices for bookings from 3–12 Nov 2026. Payment only after compatibility is confirmed. Full refund if the app doesn\'t work on your box within 7 days of installation.',
   'foot.ind': 'Independent project · not an official Jaecoo / Chery product',
   'm.left': 'founder slots left',
