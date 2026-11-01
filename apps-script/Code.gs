@@ -2,6 +2,8 @@
  * J7 Launcher bookings: the website's form lands here, one row per booking, in your own Google Sheet.
  * The Sheet is the order desk: set each booking's Status as you go; the Dashboard tab adds it up.
  * The website can only read how many founder slots are left, never the bookings themselves.
+ * Each visit to the website adds an anonymous row to Visits (time, a random browser id, where the
+ * visitor came from, language, phone or computer), which the Dashboard counts.
  *
  * Setup is in README.md next to this file. Run setup() once after pasting.
  */
@@ -14,6 +16,10 @@ const HEADERS = ['Ref', 'Received', 'Status', 'Name', 'Name on screen', 'WhatsAp
 const STATUSES = ['New', 'Box checked', 'Not compatible', 'Paid', 'Built', 'Installed', 'Refunded', 'Cancelled'];
 /** Bookings that no longer hold a founder slot. */
 const FREED = ['Not compatible', 'Refunded', 'Cancelled'];
+const VISITS = 'Visits';
+const VISIT_HEADERS = ['Time', 'Visitor', 'Source', 'Language', 'Device'];
+/** A reload within this time is the same visit. */
+const VISIT_GAP_S = 1800;
 
 /** Run once: headers, the Status dropdown and colours, and the Dashboard tab. */
 function setup() {
@@ -31,8 +37,10 @@ function setup() {
   sh.setConditionalFormatRules(Object.keys(colours).map((s) => SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied(`=$C2="${s}"`).setBackground(colours[s]).setRanges([range]).build()));
 
+  visitsSheet();
   const d = ss.getSheetByName('Dashboard') || ss.insertSheet('Dashboard', 0);
   d.clear();
+  d.getCharts().forEach((c) => d.removeChart(c));
   const live = `COUNTA(${SHEET}!A2:A)-COUNTIF(${SHEET}!C2:C,"Not compatible")-COUNTIF(${SHEET}!C2:C,"Refunded")-COUNTIF(${SHEET}!C2:C,"Cancelled")`;
   const rows = [
     ['J7 Launcher · founder pre-order', ''],
@@ -50,6 +58,32 @@ function setup() {
   d.getRange('B2').setFontWeight('bold').setFontSize(14);
   d.setColumnWidth(1, 280);
   d.setColumnWidth(2, 160);
+
+  // Website visitors, next to the bookings.
+  const v = VISITS;
+  const visitors = [
+    ['Website visitors', ''],
+    ['Visits (all)', `=COUNTA(${v}!A2:A)`],
+    ['Unique visitors', `=COUNTUNIQUE(${v}!B2:B)`],
+    ['Visits today', `=COUNTIF(${v}!A2:A,">="&TODAY())`],
+    ['Unique visitors today', `=IFERROR(COUNTUNIQUE(FILTER(${v}!B2:B,${v}!A2:A>=TODAY())),0)`],
+    ['Visits, last 7 days', `=COUNTIF(${v}!A2:A,">="&(TODAY()-6))`],
+    ['Bookings per 100 visitors', `=IFERROR(ROUND(100*COUNTA(${SHEET}!A2:A)/COUNTUNIQUE(${v}!B2:B),1),0)`],
+    ['Phone / computer', `=COUNTIF(${v}!E2:E,"phone")&" / "&COUNTIF(${v}!E2:E,"computer")`],
+    ['English / BM', `=COUNTIF(${v}!D2:D,"en")&" / "&COUNTIF(${v}!D2:D,"ms")`],
+  ];
+  d.getRange(1, 4, visitors.length, 2).setValues(visitors);
+  d.getRange('D1').setFontWeight('bold').setFontSize(14);
+  d.getRange('E3').setFontWeight('bold').setFontSize(14);
+  d.getRange('D11').setValue('Where visitors come from').setFontWeight('bold');
+  d.getRange('D12').setFormula(`=IFERROR(QUERY(${v}!C2:C,"select C, count(C) where C is not null group by C order by count(C) desc label C 'Source', count(C) 'Visits'",0),"No visits yet")`);
+  d.setColumnWidth(4, 230);
+  d.setColumnWidth(5, 120);
+  d.getRange('G1').setValue('Visits per day').setFontWeight('bold');
+  d.getRange('G2').setFormula(`=IFERROR(QUERY(${v}!A2:A,"select toDate(A), count(A) where A is not null group by toDate(A) label toDate(A) 'Day', count(A) 'Visits'",0),"")`);
+  d.insertChart(d.newChart().setChartType(Charts.ChartType.COLUMN).addRange(d.getRange('G2:H60'))
+    .setPosition(16, 4, 0, 0).setOption('title', 'Website visits per day').setOption('legend', { position: 'none' })
+    .setOption('colors', ['#ff7a1a']).setOption('width', 620).setOption('height', 300).build());
   folder();
 }
 
@@ -84,8 +118,38 @@ function doPost(e) {
  * Public: the website's counter. Slots left, and the last few bookings with only the state, the
  * package and the time (no names, phones or plates).
  */
-function doGet() {
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  if (p.v === '1') recordVisit(p);
   return json({ slots: SLOTS, left: slotsLeft(), recent: recentBookings() });
+}
+
+/** One anonymous row per visit; reloads within half an hour by the same browser don't count again. */
+function recordVisit(p) {
+  const id = String(p.id || '');
+  if (!/^[a-z0-9]{8,40}$/.test(id)) return;
+  const cache = CacheService.getScriptCache();
+  if (cache.get(`v-${id}`)) return;
+  cache.put(`v-${id}`, '1', VISIT_GAP_S);
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return;
+  try {
+    visitsSheet().appendRow([new Date(), id, String(p.src || 'direct').slice(0, 40), p.lang === 'ms' ? 'ms' : 'en',
+      p.dev === 'phone' ? 'phone' : 'computer'].map(clean));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function visitsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(VISITS);
+  if (!sh) {
+    sh = ss.insertSheet(VISITS);
+    sh.getRange(1, 1, 1, VISIT_HEADERS.length).setValues([VISIT_HEADERS]).setFontWeight('bold').setBackground('#eef2ff');
+    sh.setFrozenRows(1);
+  }
+  return sh;
 }
 
 function recentBookings() {

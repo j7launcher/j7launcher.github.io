@@ -153,7 +153,7 @@ const EN = {
   'm.booked': 'already booked',
   'm.live': 'Live from the booking list',
   'm.ends': 'Founder price ends in',
-  'pv.5': 'The booking counter on this page shows the real number from the booking list. Recent activity shows only the state and package, never names.',
+  'pv.5': 'The booking counter on this page shows the real number from the booking list. Recent activity shows only the state and package, never names. Visits to this page are counted anonymously (a random number kept in your browser, where you came from, language, phone or computer), with no cookies and no personal data.',
 };
 
 /* Messages the script writes itself. */
@@ -257,10 +257,34 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-/** Slots left (and, when the Sheet shares it, the latest bookings without names). */
+/** This browser's anonymous visitor id (random, kept in the browser only). */
+function visitorId() {
+  try {
+    let id = localStorage.getItem('j7-vid');
+    if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('j7-vid', id); }
+    return id;
+  } catch (e) { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+}
+
+/** Where the visitor came from: ?src=… on our own links (e.g. ?src=wa-group), else the referring site. */
+function source() {
+  const q = new URLSearchParams(location.search).get('src');
+  if (q) return q.replace(/[^\w.-]/g, '').slice(0, 40) || 'direct';
+  try { return document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : 'direct'; } catch (e) { return 'direct'; }
+}
+
+let counted = false;
+
+/** Slots left (and, when the Sheet shares it, the latest bookings without names). The first call also counts the visit. */
 function loadSlots() {
   if (!SHEET_URL) return;
-  fetch(SHEET_URL).then((r) => r.json()).then((d) => {
+  let url = SHEET_URL;
+  if (!counted) {
+    counted = true;
+    const dev = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'phone' : 'computer';
+    url += `?v=1&id=${encodeURIComponent(visitorId())}&src=${encodeURIComponent(source())}&lang=${lang}&dev=${dev}`;
+  }
+  fetch(url).then((r) => r.json()).then((d) => {
     if (typeof d.left === 'number') slotsLeft = d.left;
     if (Array.isArray(d.recent)) recent = d.recent;
     showSlots();
