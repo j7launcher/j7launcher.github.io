@@ -92,6 +92,7 @@ h2{font-size:clamp(30px,5vw,44px);font-weight:800;letter-spacing:-.025em}
 .plan h3{font-size:24px}
 .price{margin:8px 0 16px;color:var(--muted)}
 .price b{font-size:52px;font-weight:850;letter-spacing:-.03em;color:var(--ink)}
+.price .norm{font-size:15px;margin-left:6px}
 .plan ul{list-style:none;padding:0;margin:0 0 22px;display:flex;flex-direction:column;gap:9px;flex:1}
 .plan li{padding-left:26px;position:relative;color:#d3d8de;font-size:15.5px}
 .plan li::before{content:"";position:absolute;left:3px;top:7px;width:11px;height:6px;border-left:2.5px solid var(--ok);border-bottom:2.5px solid var(--ok);transform:rotate(-45deg)}
