@@ -385,6 +385,11 @@ function setCountry() {
   document.getElementById('pstyle-wrap').hidden = c !== 'SG';
   document.getElementById('f-phone').placeholder = COUNTRY[c].phone;
   document.getElementById('f-plate').placeholder = COUNTRY[c].plate;
+  // On-site visits are Klang Valley only.
+  const install = document.getElementById('f-install');
+  const visit = install.querySelector('option[value^="On-site"]');
+  visit.disabled = visit.hidden = c === 'SG';
+  if (c === 'SG') install.value = 'Remote (WhatsApp)';
   showPlate();
 }
 

@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_blank">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* J7 Orders: one person's order desk. Phone first; on a computer the order opens beside the list. */
+:root{
+  --bg:#0b0d10; --panel:#12151a; --card:#171b21; --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --text:#f2efe9; --muted:#97a0aa; --faint:#6b737c; --accent:#ff7a1a; --accent2:#ff9a3c; --ok:#34d399; --bad:#f87171; --warn:#f5c542;
+  --display:'Geist',system-ui,sans-serif; --mono:'Geist Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none !important}
+html,body{background:var(--bg);color:var(--text);font:15px/1.45 var(--display);-webkit-font-smoothing:antialiased}
+body{min-height:100vh;padding-bottom:40px}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent2)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* top */
+header{position:sticky;top:0;z-index:5;background:rgba(11,13,16,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:12px 16px}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#170a00;display:grid;place-items:center;font:850 15px var(--display);letter-spacing:-.02em;flex:none}
+.brand{font:750 18px var(--display);letter-spacing:-.01em}
+.brand small{display:block;font:500 12px var(--display);color:var(--muted)}
+.spacer{flex:1}
+.icon-btn{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;flex:none}
+.icon-btn:hover{border-color:var(--line2)}
+.icon-btn svg{width:19px;height:19px}
+.icon-btn.primary{background:var(--accent);border-color:var(--accent);color:#170a00}
+.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.wrap{max-width:1180px;margin:0 auto;padding:14px 16px 0}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
+.stat .k{font:600 11px var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.stat .v{font:800 22px var(--display);letter-spacing:-.02em;margin-top:2px;white-space:nowrap}
+.stat .v small{font:600 13px var(--display);color:var(--muted);margin-left:3px}
+.meter{height:5px;border-radius:9px;background:rgba(255,255,255,.08);margin-top:7px;overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:9px}
+
+.tabs{display:flex;gap:6px;margin:14px 0 4px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:4px}
+.tab{flex:1;border:0;background:none;border-radius:10px;padding:9px 6px;font-weight:650;color:var(--muted);cursor:pointer}
+.tab.on{background:var(--card);color:var(--text);box-shadow:0 0 0 1px var(--line2)}
+.tab b{display:inline-block;min-width:20px;padding:0 6px;border-radius:99px;background:var(--accent);color:#170a00;font:750 12px/20px var(--display);margin-left:5px}
+
+.layout{display:block}
+@media (min-width:980px){
+  .layout.split{display:grid;grid-template-columns:minmax(0,1fr) 520px;gap:18px;align-items:start}
+}
+
+/* lists */
+.group{margin-top:18px}
+.group h3{font:700 14px var(--display);display:flex;align-items:baseline;gap:8px}
+.group h3 .n{font:700 12px var(--mono);color:var(--accent2)}
+.group p.hint{color:var(--faint);font-size:13px;margin:1px 0 8px}
+.list{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;cursor:pointer}
+.row:hover{border-color:var(--line2)}
+.row.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.row .main{flex:1;min-width:0}
+.row .t,.row .s{display:block}
+.row .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s.warn{color:var(--warn)}
+.row .side{text-align:right;flex:none;display:grid;gap:4px;justify-items:end}
+.row .ago{font:500 12px var(--mono);color:var(--faint)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;vertical-align:1px}
+.plate{background:#050505;color:#fff;border:1.5px solid #3a3a3a;border-radius:6px;font:800 13px/1 var(--display);letter-spacing:.06em;padding:6px 7px;white-space:nowrap;flex:none;min-width:84px;text-align:center}
+.plate.big{font-size:22px;padding:9px 12px;border-radius:8px;min-width:0}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:3px 9px;font:650 12px var(--display);white-space:nowrap;background:rgba(255,255,255,.07);color:var(--muted)}
+.badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-New{color:#f5c542;background:rgba(245,197,66,.12)}
+.st-Box-checked{color:#60a5fa;background:rgba(96,165,250,.13)}
+.st-Paid{color:#34d399;background:rgba(52,211,153,.13)}
+.st-Built{color:#a5b4fc;background:rgba(165,180,252,.14)}
+.st-Installed{color:#4ade80;background:rgba(74,222,128,.13)}
+.st-Not-compatible{color:#f87171;background:rgba(248,113,113,.13)}
+.st-Refunded,.st-Cancelled{color:#9ca3af;background:rgba(156,163,175,.12)}
+
+.tools{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.search{flex:1;min-width:200px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:6px 11px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer}
+.chip.on{border-color:var(--accent);color:var(--text);background:rgba(255,122,26,.12)}
+.chip span{color:var(--faint);margin-left:4px}
+
+.empty{margin-top:28px;text-align:center;color:var(--muted);padding:34px 18px;border:1px dashed var(--line2);border-radius:18px}
+.empty b{display:block;color:var(--text);font-size:17px;margin-bottom:4px}
+
+/* forms */
+.input{width:100%;background:#0e1115;border:1px solid var(--line2);border-radius:11px;padding:10px 12px;outline:none}
+.input:focus{border-color:var(--accent)}
+textarea.input{min-height:90px;resize:vertical}
+label.f{display:grid;gap:5px;font-weight:600;font-size:13px;color:var(--muted)}
+label.f small{font-weight:500;color:var(--faint)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;border:1px solid var(--line2);background:var(--card);padding:11px 15px;font-weight:700;cursor:pointer;text-decoration:none;color:var(--text);min-height:44px}
+.btn:hover{border-color:rgba(255,255,255,.3)}
+.btn svg{width:18px;height:18px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#170a00}
+.btn.wa{background:#1fa855;border-color:#1fa855;color:#fff}
+.btn.good{border-color:rgba(52,211,153,.5);color:var(--ok)}
+.btn.bad{border-color:rgba(248,113,113,.45);color:var(--bad)}
+.btn.ghost{background:none}
+.btn.sm{min-height:36px;padding:7px 11px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn{flex:1 1 auto}
+
+/* the order */
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+@media (max-width:979px){
+  .detail{position:fixed;inset:0;z-index:20;border-radius:0;border:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+}
+@media (min-width:980px){ .detail{position:sticky;top:76px;max-height:calc(100vh - 92px);overflow-y:auto} }
+.d-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(18,21,26,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.d-top .ref{font:600 13px var(--mono);color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-body{padding:16px 16px 30px;display:grid;gap:14px}
+.hero{display:flex;gap:14px;align-items:center}
+.hero h2{font:800 22px/1.15 var(--display);letter-spacing:-.02em}
+.hero p{color:var(--muted);font-size:14px}
+.meta{display:flex;gap:6px;flex-wrap:wrap}
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;list-style:none;padding:0}
+.steps li{font:600 11px var(--display);color:var(--faint);text-align:center}
+.steps li::before{content:'';display:block;height:5px;border-radius:9px;background:rgba(255,255,255,.1);margin-bottom:6px}
+.steps li.done{color:var(--muted)}
+.steps li.done::before{background:var(--accent)}
+.steps li.now{color:var(--text)}
+.steps li.now::before{background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 0 3px rgba(255,122,26,.18)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.card h4{font:700 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.next{border-color:rgba(255,122,26,.45);background:linear-gradient(180deg,rgba(255,122,26,.09),rgba(255,122,26,.02)),var(--card)}
+.next h4{color:var(--accent2)}
+.next .what{font:750 17px var(--display);margin-bottom:3px}
+.next p{color:var(--muted);font-size:14px;margin-bottom:12px}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 14px}
+.kv div{min-width:0}
+.kv dt{font:600 11px var(--mono);letter-spacing:.06em;color:var(--faint);text-transform:uppercase}
+.kv dd{margin:1px 0 0;font-weight:600;overflow-wrap:anywhere}
+.quote{white-space:pre-wrap;color:#d7d2c9;font-size:14px;border-left:3px solid var(--line2);padding-left:10px}
+.msgs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.msgs .btn{justify-content:flex-start;font-weight:600;font-size:13px;min-height:40px;padding:8px 10px}
+.msgs .btn .sent{margin-left:auto;color:var(--ok);font-size:12px}
+.log{display:grid;gap:6px;font-size:13px}
+.log div{display:flex;gap:10px}
+.log time{font:500 12px var(--mono);color:var(--faint);flex:none;width:98px}
+.inline{display:flex;gap:8px}
+.inline .input{flex:1}
+.saved{font-size:12px;color:var(--ok);margin-left:6px}
+
+/* money */
+.table{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.table .r{display:grid;grid-template-columns:70px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:14px}
+.table .r b{font-weight:750;white-space:nowrap}
+
+/* modal + toast */
+.scrim{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:grid;place-items:end center;padding:0}
+@media (min-width:640px){ .scrim{place-items:center;padding:20px} }
+.modal{width:100%;max-width:560px;max-height:92vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:20px 20px 0 0;padding:18px 16px 22px;display:grid;gap:12px}
+@media (min-width:640px){ .modal{border-radius:20px} }
+.modal h3{font:800 19px var(--display);letter-spacing:-.01em}
+.modal .msgbox{min-height:210px;font-size:15px;line-height:1.5}
+.seg{display:inline-flex;background:#0e1115;border:1px solid var(--line2);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:5px 12px;border-radius:7px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--card);color:var(--text)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;background:#20252c;border:1px solid var(--line2);border-radius:12px;padding:11px 16px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.4);max-width:92vw}
+.toast.err{border-color:rgba(248,113,113,.6);color:#fecaca}
+.banner{display:flex;gap:10px;align-items:center;background:rgba(245,197,66,.08);border:1px solid rgba(245,197,66,.35);color:#f6dc8b;border-radius:12px;padding:10px 12px;font-size:13px;margin-top:12px}
+.banner .btn{margin-left:auto}
+.loading{margin-top:40px;text-align:center;color:var(--muted)}
+
+/* payment QR */
+.qrset,.qrsend{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
+.qrset img,.qrsend img{width:96px;height:96px;object-fit:contain;background:#fff;border-radius:10px;flex:none}
+.qrnone{width:96px;height:96px;border-radius:10px;border:1px dashed var(--line2);display:grid;place-items:center;color:var(--faint);font-size:12px;text-align:center;flex:none}
+.qrset .btns,.qrsend .btns{margin-top:8px}
+.qrsend b{display:block}
+.qrsend .small{display:block}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="logo">J7</div>
+    <div class="brand">Orders<small id="sub">Loading…</small></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="refresh" title="Refresh" data-a="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+    <button class="icon-btn" title="Settings" data-a="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    <button class="icon-btn primary" title="Add a booking by hand" data-a="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats" id="stats"></div>
+  <div id="banner"></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="layout" id="layout">
+    <div id="view"><div class="loading">Loading your orders…</div></div>
+    <aside class="detail" id="detail" hidden></aside>
+  </div>
+</div>
+<div id="modal"></div>
+<div id="toast" class="toast" hidden></div>
+<div id="first" hidden data-d="<?= first ?>"></div>
+
+<script>
+// A script error shows on the page instead of leaving "Loading…" up for ever.
+window.addEventListener('error', (e) => {
+  const v = document.getElementById('view');
+  if (v && v.querySelector('.loading')) v.innerHTML = `<div class="empty"><b>The page hit an error</b>${String(e.message).replace(/[<>&]/g, '')}</div>`;
+});
+</script>
+<script>
+const STATUSES = ['New', 'Box checked', 'Not compatible', 'Paid', 'Built', 'Installed', 'Refunded', 'Cancelled'];
+const FLOW = ['New', 'Box checked', 'Paid', 'Built', 'Installed'];
+const CLOSED = ['Not compatible', 'Refunded', 'Cancelled'];
+const DAY = 864e5;
+const STUDIO = 'http://127.0.0.1:8730/';
+
+const S = { orders: [], settings: {}, slots: 30, left: 30, tab: 'todo', open: null, q: '', filter: 'all', busy: false, sheet: '' };
+
+// ------------------------------------------------------------------ server
+
+const NO_ANSWER = "Google didn't answer. If this browser is signed in to more than one Google account, open this page in an incognito window and sign in only with the account that owns the Sheet.";
+
+function call(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    // With several Google accounts signed in, Google can drop the call without saying so.
+    const late = setTimeout(() => reject(new Error(NO_ANSWER)), 30000);
+    google.script.run
+      .withSuccessHandler((r) => { clearTimeout(late); resolve(typeof r === 'string' ? JSON.parse(r) : r); })
+      .withFailureHandler((e) => { clearTimeout(late); reject(new Error((e && e.message) || String(e))); })[fn](...args);
+  });
+}
+
+/** The orders the server put into the page when it opened, so the first load needs no call. */
+function firstData() {
+  const el = document.getElementById('first');
+  const raw = el && el.dataset.d;
+  if (el) el.remove();
+  try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+
+async function load(quiet) {
+  const btn = document.getElementById('refresh');
+  btn.classList.add('spin');
+  try {
+    const d = firstData() || await call('adminData', { skipQr: !!S.qr });
+    S.orders = d.orders;
+    S.settings = d.settings;
+    if ('qr' in d) S.qr = d.qr || null;
+    S.slots = d.slots;
+    S.left = d.left;
+    S.sheet = d.sheet;
+    markFirstVisit();
+    render();
+    if (!quiet) renderDetail();
+    else if (S.open && !document.querySelector('#detail :focus')) renderDetail();
+  } catch (e) {
+    toast(e.message, true);
+    if (!S.orders.length) document.getElementById('view').innerHTML = `<div class="empty"><b>Couldn't load the orders</b>${esc(e.message)}</div>`;
+  } finally {
+    btn.classList.remove('spin');
+  }
+}
+
+async function save(ref, change, okText) {
+  S.busy = true;
+  try {
+    const d = await call('adminSave', ref, change);
+    put(d.order);
+    S.left = d.left;
+    render();
+    renderDetail();
+    if (okText) toast(okText);
+    return d.order;
+  } catch (e) {
+    toast(e.message, true);
+    throw e;
+  } finally {
+    S.busy = false;
+  }
+}
+
+function put(o) {
+  const i = S.orders.findIndex((x) => x.ref === o.ref);
+  if (i < 0) S.orders.push(o); else S.orders[i] = o;
+}
+
+// ------------------------------------------------------------------ order facts
+
+const byRef = (ref) => S.orders.find((o) => o.ref === ref);
+const firstName = (o) => (o.greeting || o.name || '').trim() || 'tuan/puan';
+const pkgName = (o) => String(o.package || '').split(' ')[0] || '–';
+const onsite = (o) => /^On-site/i.test(o.install || '');
+const price = (o) => Number((String(o.package).match(/RM\s?(\d+)/) || [])[1] || 0);
+const amount = (o) => price(o) + (onsite(o) ? Number(S.settings.onsite || 0) : 0);
+const lang = (o) => (o.siteLang === 'en' ? 'en' : 'ms');
+const intl = (p) => '6' + String(p || '').replace(/\D/g, '').replace(/^6/, '');
+const showPhone = (p) => {
+  const d = String(p || '').replace(/\D/g, '');
+  // Singapore, as the website writes it: +65 9123 4567.
+  if (/^\+?\s*65/.test(String(p || '').trim()) && d.length === 10) return `+65 ${d.slice(2, 6)} ${d.slice(6)}`;
+  return d.length > 6 ? `${d.slice(0, 3)}-${d.slice(3, 6)} ${d.slice(6)}` : d;
+};
+const active = () => S.orders.filter((o) => !CLOSED.includes(o.status));
+
+/** Log lines: "2026-11-03 21:04 · WhatsApp: terima". */
+function logLines(o) {
+  return String(o.log || '').split('\n').filter(Boolean).map((l) => {
+    const m = l.match(/^(\d{4}-\d\d-\d\d \d\d:\d\d) · (.*)$/);
+    return m ? { at: new Date(m[1].replace(' ', 'T') + ':00+08:00'), text: m[2] } : { at: null, text: l };
+  });
+}
+const sentAt = (o, key) => { const l = logLines(o).filter((x) => x.text === `WhatsApp: ${key}`).pop(); return l ? l.at : null; };
+const sent = (o, key) => !!sentAt(o, key);
+const statusAt = (o, s) => { const l = logLines(o).filter((x) => x.text.endsWith(`→ ${s}`)).pop(); return l ? l.at : null; };
+const waited = (t) => (t ? Date.now() - t.getTime() : 0);
+
+/** What this order needs from you next, or null when nothing. */
+function next(o) {
+  const s = o.status;
+  if (s === 'New') {
+    if (!sent(o, 'terima')) return { g: 'reply', label: o.photo ? 'Say thanks (their box photo is in)' : 'Say thanks, ask for the box photo', key: 'terima' };
+    const w = waited(sentAt(o, 'terima'));
+    return { g: 'check', label: o.photo ? 'Photo is in: check it' : 'Waiting for their box photo', wait: w, late: !o.photo && w > 2 * DAY };
+  }
+  if (s === 'Box checked') {
+    if (!sent(o, 'serasi')) return { g: 'reply', label: 'Send the price and your bank details', key: 'serasi' };
+    const w = waited(sentAt(o, 'serasi'));
+    return { g: 'pay', label: `RM${amount(o)} to pay`, wait: w, late: w > 2 * DAY };
+  }
+  if (s === 'Paid') {
+    if (!sent(o, 'bayar')) return { g: 'reply', label: 'Confirm you received the payment', key: 'bayar' };
+    return { g: 'build', label: 'Build their app in J7 Studio' };
+  }
+  if (s === 'Built') {
+    if (!o.installDate) return { g: 'install', label: 'Agree an install date' };
+    if (!sent(o, 'pasang')) return { g: 'reply', label: 'Send the install-day message', key: 'pasang' };
+    return { g: 'install', label: `Install ${when(o.installDate)}`, soon: installSoon(o) };
+  }
+  if (s === 'Installed') {
+    if (sent(o, 'testimoni')) return null;
+    const t = statusAt(o, 'Installed');
+    return t && waited(t) >= 3 * DAY ? { g: 'review', label: 'Ask how it’s going', key: 'testimoni' } : null;
+  }
+  if (s === 'Not compatible' && !sent(o, 'takSerasi')) return { g: 'reply', label: 'Tell them their box doesn’t fit', key: 'takSerasi' };
+  if (s === 'Refunded' && !sent(o, 'refund')) return { g: 'reply', label: 'Confirm the refund', key: 'refund' };
+  return null;
+}
+
+const GROUPS = [
+  ['reply', 'Reply now', 'They’re waiting for a message from you. Tap, check the text, send.'],
+  ['check', 'Check the box', 'Look at their Settings → About photo, then tap Fits or Doesn’t fit.'],
+  ['pay', 'Waiting for payment', 'Price and bank details sent. Record the payment when the receipt comes.'],
+  ['build', 'To build', 'Paid. Make their app in J7 Studio, then mark it built.'],
+  ['install', 'To install', 'Agree a time, send the install message, then mark it installed.'],
+  ['review', 'Ask for a review', 'Installed 3 days ago or more.'],
+];
+
+function installSoon(o) {
+  const d = parseWhen(o.installDate);
+  if (!d) return '';
+  const days = Math.floor((startOfDay(d) - startOfDay(new Date())) / DAY);
+  return days < 0 ? 'overdue' : days === 0 ? 'today' : days === 1 ? 'tomorrow' : '';
+}
+const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+function parseWhen(v) {
+  const m = String(v || '').match(/^(\d{4})-(\d\d)-(\d\d)(?: (\d\d):(\d\d))?/);
+  return m ? new Date(+m[1], m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0)) : null;
+}
+function when(v, l = 'en') {
+  const d = parseWhen(v);
+  if (!d) return '';
+  const hasTime = / \d\d:\d\d/.test(v);
+  return d.toLocaleString(l === 'ms' ? 'ms-MY' : 'en-MY', { weekday: 'short', day: 'numeric', month: 'short', ...(hasTime ? { hour: 'numeric', minute: '2-digit' } : {}) });
+}
+function ago(iso) {
+  if (!iso) return '';
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'now';
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h`;
+  return `${Math.floor(s / 86400)} d`;
+}
+const span = (ms) => (ms < 3600e3 ? `${Math.max(1, Math.round(ms / 60e3))} min` : ms < DAY ? `${Math.round(ms / 3600e3)} h` : `${Math.floor(ms / DAY)} d`);
+const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' }) : '');
+const rm = (n) => 'RM' + Number(n || 0).toLocaleString('en-MY', { maximumFractionDigits: 2 });
+const esc = (s) => String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cls = (s) => 'st-' + String(s).replace(/\s+/g, '-');
+
+// ------------------------------------------------------------------ messages
+
+function bankText(l) {
+  const s = S.settings;
+  const lines = [
+    s.bank || s.account ? `${s.bank}${s.bank && s.account ? ' · ' : ''}${s.account}` : '',
+    s.holder ? `${l === 'ms' ? 'Nama' : 'Name'}: ${s.holder}` : '',
+    s.duitnow ? `DuitNow: ${s.duitnow}` : '',
+    qrLine(l),
+  ].filter(Boolean);
+  return lines.length ? lines.join('\n') : (l === 'ms' ? '[bank · no. akaun · nama]' : '[bank · account no. · name]');
+}
+
+/** The link to your DuitNow QR picture, when you've added one in Settings. */
+function qrLine(l) {
+  return S.qr ? `${l === 'ms' ? 'Imbas QR DuitNow' : 'Scan the DuitNow QR'}: ${S.qr.link}` : '';
+}
+const QR_MSGS = ['serasi', 'nudgePay'];
+
+/** Every message you can send, in Malay and English. o = the order, x = extras (reason). */
+const MSGS = {
+  terima: {
+    label: 'Thanks + box photo',
+    ms: (o) => `Terima kasih ${firstName(o)}! Tempahan *${o.ref}* untuk ${o.plate} diterima ✅\n\n` + (o.photo
+      ? 'Gambar box anda dah sampai. Saya semak dan maklumkan dalam 24 jam. Tiada bayaran sehingga itu.'
+      : 'Boleh hantar gambar *Tetapan → Perihal (About)* box anda? Saya sahkan serasi dalam 24 jam. Tiada bayaran sehingga itu.') + `\n\n– ${S.settings.sign}, J7 Launcher`,
+    en: (o) => `Thanks ${firstName(o)}! Booking *${o.ref}* for ${o.plate} received ✅\n\n` + (o.photo
+      ? 'Your box photo came through. I’ll check it and confirm within 24 hours. Nothing to pay until then.'
+      : 'Could you send a photo of your box’s *Settings → About* screen? I’ll confirm it fits within 24 hours. Nothing to pay until then.') + `\n\n– ${S.settings.sign}, J7 Launcher`,
+  },
+  nudgePhoto: {
+    label: 'Reminder: photo',
+    ms: (o) => `Salam ${firstName(o)} 👋 Sekadar ingatkan: saya perlukan gambar *Tetapan → Perihal* box anda untuk tempahan ${o.ref}. Slot founder anda masih saya simpan 🙏`,
+    en: (o) => `Hi ${firstName(o)} 👋 A quick reminder: I need a photo of your box’s *Settings → About* screen for booking ${o.ref}. Your founder slot is still held for you 🙏`,
+  },
+  serasi: {
+    label: 'Fits: price + bank',
+    ms: (o) => `Berita baik ${firstName(o)}: box anda serasi ✅\n\nPakej *${pkgName(o)}*${onsite(o) ? ' + pasang di lokasi' : ''}: *RM${amount(o)}*\nBayaran melalui DuitNow / pindahan:\n${bankText('ms')}\n\nHantar resit di sini, dan saya mula bina app dengan plat ${o.plate} anda. Pemasangan ${S.settings.window}.`,
+    en: (o) => `Good news ${firstName(o)}: your box fits ✅\n\nPackage *${pkgName(o)}*${onsite(o) ? ' + on-site install' : ''}: *RM${amount(o)}*\nPay by DuitNow / bank transfer:\n${bankText('en')}\n\nSend the receipt here and I’ll start building your app with plate ${o.plate}. Installs ${S.settings.window}.`,
+  },
+  nudgePay: {
+    label: 'Reminder: payment',
+    ms: (o) => `Salam ${firstName(o)} 👋 Tempahan ${o.ref} (${o.plate}) masih menunggu bayaran *RM${amount(o)}*. Harga founder dikekalkan untuk anda. Ada soalan, tanya je 🙏` + (S.qr ? `\n\n${qrLine('ms')}` : ''),
+    en: (o) => `Hi ${firstName(o)} 👋 Booking ${o.ref} (${o.plate}) is still waiting for the payment of *RM${amount(o)}*. Your founder price is kept for you. Any questions, just ask 🙏` + (S.qr ? `\n\n${qrLine('en')}` : ''),
+  },
+  takSerasi: {
+    label: 'Doesn’t fit',
+    ms: (o, x = {}) => `Terima kasih ${firstName(o)}. Box anda (${x.reason || reasonGuess(o)}) belum sesuai untuk J7 Launcher, jadi tiada bayaran. Saya simpan nama anda; bila ada sokongan, saya beritahu dulu 🙏`,
+    en: (o, x = {}) => `Thanks ${firstName(o)}. Your box (${x.reason || reasonGuess(o)}) can’t run J7 Launcher yet, so there’s nothing to pay. I’ll keep your name and tell you first when it’s supported 🙏`,
+  },
+  bayar: {
+    label: 'Payment received',
+    ms: (o) => `Bayaran ${rm(o.paid || amount(o))} diterima, terima kasih ${firstName(o)} 🙏\nApp anda dengan plat ${o.plate} sedang dibina. Saya WhatsApp untuk tarikh pasang (${S.settings.window}).`,
+    en: (o) => `Payment of ${rm(o.paid || amount(o))} received, thank you ${firstName(o)} 🙏\nYour app with plate ${o.plate} is being built. I’ll WhatsApp you to fix the install date (${S.settings.window}).`,
+  },
+  pasang: {
+    label: 'Install day',
+    ms: (o) => onsite(o)
+      ? `Jom pasang 🔧 Saya datang ke kereta anda${o.installDate ? ' pada *' + when(o.installDate, 'ms') + '*' : ''}. Sila kongsi lokasi di sini, dan sediakan kereta yang boleh dihidupkan dengan box hidup.`
+      : `Jom pasang 🔧${o.installDate ? ' *' + when(o.installDate, 'ms') + '*.' : ''} Sediakan: kereta di tempat parkir, box hidup, Wi-Fi/hotspot. Saya hantar fail J7 Launcher di sini; ikut langkah yang saya hantar. Lepas ni kemas kini masuk sendiri.`,
+    en: (o) => onsite(o)
+      ? `Install time 🔧 I’ll come to your car${o.installDate ? ' on *' + when(o.installDate) + '*' : ''}. Please share the location here, and have the car ready to switch on with the box running.`
+      : `Install time 🔧${o.installDate ? ' *' + when(o.installDate) + '*.' : ''} Have ready: the car parked, the box on, Wi-Fi or a hotspot. I’ll send the J7 Launcher file here; follow the steps I send. After that, updates install by themselves.`,
+  },
+  testimoni: {
+    label: 'Ask for a review',
+    ms: (o) => `Salam ${firstName(o)} 👋 Macam mana J7 Launcher setakat ni? Kalau sudi, hantar 1 gambar skrin + satu ayat. Boleh saya kongsi dalam group (dengan nama atau tanpa nama, ikut anda)?`,
+    en: (o) => `Hi ${firstName(o)} 👋 How’s J7 Launcher so far? If you’re happy to, send one photo of the screen and one line. May I share it in the group (with or without your name, your choice)?`,
+  },
+  refund: {
+    label: 'Refund done',
+    ms: (o) => `Bayaran balik ${rm(o.paid)} untuk ${o.ref} sudah dibuat. Terima kasih kerana mencuba J7 Launcher 🙏`,
+    en: (o) => `Your refund of ${rm(o.paid)} for ${o.ref} has been sent. Thank you for trying J7 Launcher 🙏`,
+  },
+};
+const reasonGuess = (o) => [o.android && `Android ${o.android}`, o.ram].filter(Boolean).join(', ') || 'Android / RAM';
+
+// ------------------------------------------------------------------ render
+
+function render() {
+  const act = active();
+  const booked = act.length;
+  const received = S.orders.reduce((n, o) => n + (o.status === 'Refunded' ? 0 : Number(o.paid || 0)), 0);
+  const toCollect = S.orders.filter((o) => o.status === 'Box checked').reduce((n, o) => n + amount(o), 0);
+  const todo = S.orders.map((o) => ({ o, n: next(o) })).filter((x) => x.n);
+  document.getElementById('sub').textContent = `${booked} of ${S.slots} slots booked`;
+  document.getElementById('stats').hidden = S.tab === 'money';
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="k">Slots left</div><div class="v">${S.left}<small>/ ${S.slots}</small></div><div class="meter"><i style="width:${Math.min(100, (booked / S.slots) * 100)}%"></i></div></div>
+    <div class="stat"><div class="k">Received</div><div class="v">${rm(received)}</div></div>
+    <div class="stat"><div class="k">To collect</div><div class="v">${rm(toCollect)}</div></div>`;
+  const s = S.settings;
+  document.getElementById('banner').innerHTML = !s.account && !s.duitnow && !S.qr && S.orders.length
+    ? '<div class="banner">Add your bank or DuitNow details once, and the “Fits: price + bank” message fills them in. <button class="btn sm" data-a="settings">Settings</button></div>' : '';
+  const urgent = todo.filter((x) => x.n.g === 'reply').length;
+  document.getElementById('tabs').innerHTML = [['todo', 'To do', todo.length], ['orders', 'Orders', S.orders.length], ['money', 'Money', 0]]
+    .map(([k, t, n]) => `<button class="tab ${S.tab === k ? 'on' : ''}" data-a="tab" data-k="${k}">${t}${k === 'todo' && n ? `<b>${urgent || n}</b>` : k === 'orders' ? ` <span class="muted">${n}</span>` : ''}</button>`).join('');
+  document.getElementById('layout').classList.toggle('split', !!S.open);
+  const v = document.getElementById('view');
+  v.innerHTML = S.tab === 'todo' ? viewTodo(todo) : S.tab === 'orders' ? viewOrders() : viewMoney();
+  if (S.tab === 'orders') {
+    const q = document.getElementById('q');
+    if (q && S.focusQ) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+  }
+}
+
+function rowHtml(o, sub, opts = {}) {
+  const fresh = !seen().has(o.ref);
+  return `<button class="row ${S.open === o.ref ? 'sel' : ''}" data-a="open" data-ref="${esc(o.ref)}">
+    <span class="plate">${esc(o.plate)}</span>
+    <span class="main"><span class="t">${fresh ? '<i class="dot" title="New since you last looked"></i>' : ''}${esc(o.name)}</span><span class="s ${opts.warn ? 'warn' : ''}">${sub}</span></span>
+    <span class="side">${opts.badge === false ? '' : `<span class="badge ${cls(o.status)}">${esc(o.status)}</span>`}<span class="ago">${opts.right || ago(o.received)}</span></span>
+  </button>`;
+}
+
+function viewTodo(todo) {
+  if (!S.orders.length) return emptyAll();
+  if (!todo.length) return '<div class="empty"><b>Nothing waiting for you 🎉</b>New bookings appear here within a minute of someone booking.</div>';
+  return GROUPS.map(([g, title, hint]) => {
+    const items = todo.filter((x) => x.n.g === g).sort((a, b) => (g === 'install' ? String(a.o.installDate || 'z').localeCompare(String(b.o.installDate || 'z')) : String(a.o.received).localeCompare(String(b.o.received))));
+    if (!items.length) return '';
+    return `<section class="group"><h3>${title} <span class="n">${items.length}</span></h3><p class="hint">${hint}</p><div class="list">
+      ${items.map(({ o, n }) => {
+        const extra = n.late ? ` · waiting ${span(n.wait)}: send a reminder` : n.wait ? ` · ${span(n.wait)}` : n.soon ? ` · ${n.soon}` : '';
+        return rowHtml(o, esc(n.label + extra), { warn: n.late || n.soon === 'today' || n.soon === 'overdue', badge: false, right: `${esc(pkgName(o))}<br>${ago(o.received)}` });
+      }).join('')}
+    </div></section>`;
+  }).join('');
+}
+
+function emptyAll() {
+  return `<div class="empty"><b>No bookings yet</b>When someone books on j7launcher.github.io, it lands here within a minute (and in your email).<br><br>
+    Booked by WhatsApp instead? <button class="btn sm" data-a="add">Add a booking</button></div>`;
+}
+
+function viewOrders() {
+  if (!S.orders.length) return emptyAll();
+  const q = S.q.trim().toLowerCase().replace(/\s+/g, '');
+  const match = (o) => !q || [o.name, o.greeting, o.plate, o.phone, o.ref, o.state, o.email].some((v) => String(v || '').toLowerCase().replace(/\s+/g, '').includes(q));
+  const inFilter = (o) => S.filter === 'all' || (S.filter === 'closed' ? CLOSED.includes(o.status) : o.status === S.filter);
+  const count = (f) => S.orders.filter((o) => (f === 'all' ? true : f === 'closed' ? CLOSED.includes(o.status) : o.status === f)).length;
+  const list = S.orders.filter((o) => match(o) && inFilter(o)).sort((a, b) => String(b.received).localeCompare(String(a.received)));
+  const chips = [['all', 'All'], ...FLOW.map((s) => [s, s]), ['closed', 'Closed']];
+  return `<div class="tools"><input id="q" class="input search" placeholder="Search name, plate, phone or ref" value="${esc(S.q)}" autocomplete="off"></div>
+    <div class="chips">${chips.map(([k, t]) => `<button class="chip ${S.filter === k ? 'on' : ''}" data-a="filter" data-k="${k}">${t}<span>${count(k)}</span></button>`).join('')}</div>
+    <div class="list" style="margin-top:12px">${list.map((o) => rowHtml(o, esc(`${pkgName(o)} · ${o.variant || 'J7'}${o.state ? ' · ' + o.state : ''}`))).join('') || '<div class="empty">No orders match.</div>'}</div>`;
+}
+
+function viewMoney() {
+  const paid = S.orders.filter((o) => Number(o.paid) > 0).sort((a, b) => String(b.paidOn || b.received).localeCompare(String(a.paidOn || a.received)));
+  const kept = paid.filter((o) => o.status !== 'Refunded');
+  const refunds = paid.filter((o) => o.status === 'Refunded');
+  const act = active();
+  const sum = (l, f) => l.reduce((n, o) => n + f(o), 0);
+  const pk = (name) => act.filter((o) => pkgName(o) === name);
+  const due = S.orders.filter((o) => o.status === 'Box checked');
+  return `<div class="stats" style="margin-top:16px">
+      <div class="stat"><div class="k">Received</div><div class="v">${rm(sum(kept, (o) => Number(o.paid)))}</div><div class="small muted">${kept.length} paid</div></div>
+      <div class="stat"><div class="k">To collect</div><div class="v">${rm(sum(due, amount))}</div><div class="small muted">${due.length} confirmed, not paid</div></div>
+      <div class="stat"><div class="k">All bookings</div><div class="v">${rm(sum(act, amount))}</div><div class="small muted">if every booking pays</div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h4>Packages</h4><div class="kv">
+      <div><dt>Standard</dt><dd>${pk('Standard').length} · ${rm(sum(pk('Standard'), price))}</dd></div>
+      <div><dt>Pro</dt><dd>${pk('Pro').length} · ${rm(sum(pk('Pro'), price))}</dd></div>
+      <div><dt>On-site installs</dt><dd>${act.filter(onsite).length} · ${rm(act.filter(onsite).length * Number(S.settings.onsite || 0))}</dd></div>
+      <div><dt>Refunded</dt><dd>${refunds.length} · ${rm(sum(refunds, (o) => Number(o.paid)))}</dd></div>
+    </div></div>
+    <section class="group"><h3>Payments <span class="n">${paid.length}</span></h3><p class="hint">Newest first. Tap one to open the order.</p>
+      <div class="table">${paid.map((o) => `<button class="r row" data-a="open" data-ref="${esc(o.ref)}"><span class="mono small muted">${day(o.paidOn || o.received)}</span><span class="main"><span class="t">${esc(o.name)}</span><span class="s">${esc(o.plate)} · ${esc(pkgName(o))}${o.status === 'Refunded' ? ' · refunded' : ''}</span></span><b>${rm(o.paid)}</b></button>`).join('') || '<div class="empty">No payments yet.</div>'}</div>
+    </section>
+    ${S.sheet ? `<p class="small muted" style="margin-top:16px">Everything here is the Bookings tab of <a href="${esc(S.sheet)}">your Sheet</a>.</p>` : ''}`;
+}
+
+// ------------------------------------------------------------------ the order
+
+function renderDetail() {
+  const el = document.getElementById('detail');
+  const o = S.open && byRef(S.open);
+  document.getElementById('layout').classList.toggle('split', !!o);
+  if (!o) { el.hidden = true; el.innerHTML = ''; document.body.style.overflow = ''; return; }
+  el.hidden = false;
+  if (matchMedia('(max-width:979px)').matches) document.body.style.overflow = 'hidden';
+  const at = FLOW.indexOf(o.status);
+  const lines = logLines(o).slice().reverse();
+  const kv = (k, v) => (v ? `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>` : '');
+  el.innerHTML = `
+    <div class="d-top">
+      <button class="icon-btn" data-a="close" title="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="ref">${esc(o.ref)}</span>
+      <button class="btn sm ghost" data-a="copy-details" data-ref="${esc(o.ref)}">Copy details</button>
+    </div>
+    <div class="d-body">
+      <div class="hero"><span class="plate big">${esc(o.plate)}</span><div><h2>${esc(o.name)}</h2><p>${o.greeting && o.greeting !== o.name ? `“${esc(o.greeting)}” on screen · ` : ''}${esc(o.state || '')}</p></div></div>
+      <div class="meta"><span class="badge ${cls(o.status)}">${esc(o.status)}</span><span class="badge">${esc(o.package || '–')}</span>${onsite(o) ? '<span class="badge">On-site install</span>' : ''}<span class="badge">Booked ${day(o.received)} · ${ago(o.received)} ago</span>${o.siteLang === 'en' ? '<span class="badge">English</span>' : ''}</div>
+      ${CLOSED.includes(o.status) ? '' : `<ol class="steps">${FLOW.map((s, i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}">${s}</li>`).join('')}</ol>`}
+      ${nextCard(o)}
+      <div class="card"><h4>Contact</h4><div class="btns">
+        <a class="btn wa" href="https://wa.me/${intl(o.phone)}">${waIcon()}${esc(showPhone(o.phone))}</a>
+        <a class="btn" href="tel:${esc(o.phone)}" target="_top">Call</a>
+        ${o.email ? `<a class="btn" href="mailto:${esc(o.email)}">Email</a>` : ''}
+      </div></div>
+      <div class="card"><h4>Messages</h4><div class="msgs">
+        ${Object.entries(MSGS).map(([k, m]) => `<button class="btn" data-a="msg" data-k="${k}" data-ref="${esc(o.ref)}">${m.label}${sent(o, k) ? '<span class="sent">sent ✓</span>' : ''}</button>`).join('')}
+      </div><p class="small muted" style="margin-top:10px">Each opens WhatsApp with the text ready, in ${lang(o) === 'en' ? 'English' : 'Malay'} (they booked in ${lang(o) === 'en' ? 'English' : 'BM'}). You can change it before sending.</p></div>
+      <div class="card"><h4>Car & box</h4><dl class="kv">
+        ${kv('Car', [o.variant, o.colour].filter(Boolean).join(' · '))}${kv('Android', o.android)}${kv('RAM', o.ram)}${kv('Box', o.box)}
+      </dl>${o.photo ? `<div class="btns" style="margin-top:12px"><a class="btn sm" href="${esc(o.photo)}">Their Settings → About photo</a></div>` : '<p class="small muted" style="margin-top:10px">No photo with the booking: it comes by WhatsApp.</p>'}</div>
+      <div class="card"><h4>What they chose</h4><dl class="kv">
+        ${kv('Map app', o.nav)}${kv('Music', o.music)}${kv('Daily info', o.dayTile)}${kv('Greeting', o.language)}${kv('Second driver', o.driver2)}${kv('Install', o.install)}${kv('Email', o.email)}
+      </dl>${o.notes ? `<div style="margin-top:12px"><dt class="small muted">Their notes</dt><p class="quote" style="margin-top:4px">${esc(o.notes)}</p></div>` : ''}</div>
+      <div class="card"><h4>Payment</h4><div class="inline"><input class="input" id="paid" type="number" inputmode="decimal" min="0" step="1" placeholder="${amount(o)}" value="${esc(o.paid)}"><button class="btn" data-a="save-paid" data-ref="${esc(o.ref)}">Save</button></div>
+        <p class="small muted" style="margin-top:6px">${o.paidOn ? `Paid ${day(o.paidOn)}. ` : ''}Price: ${rm(amount(o))} (${esc(pkgName(o))}${onsite(o) ? ` + ${rm(S.settings.onsite)} on-site` : ''}).</p></div>
+      <div class="card"><h4>Install date</h4><div class="inline"><input class="input" id="when" type="datetime-local" value="${esc(String(o.installDate || '').replace(' ', 'T'))}"><button class="btn" data-a="save-when" data-ref="${esc(o.ref)}">Save</button></div>
+        ${o.installDate ? `<p class="small muted" style="margin-top:6px">${esc(when(o.installDate))}</p>` : ''}</div>
+      <div class="card"><h4>Your notes <span class="saved" id="notes-saved" hidden>saved</span></h4><textarea class="input" id="notes" data-ref="${esc(o.ref)}" placeholder="Only you see this. Saved when you leave the box.">${esc(o.myNotes)}</textarea></div>
+      <div class="card"><h4>History</h4><div class="log">${lines.map((l) => `<div><time>${l.at ? l.at.toLocaleString('en-MY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</time><span>${esc(l.text)}</span></div>`).join('')}
+        ${/Added by hand/.test(o.log) ? '' : `<div><time>${new Date(o.received).toLocaleString('en-MY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time><span>Booked on the website</span></div>`}</div></div>
+      <div class="card"><h4>Status</h4><div class="inline"><select class="input" id="status">${STATUSES.map((s) => `<option ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" data-a="save-status" data-ref="${esc(o.ref)}">Set</button></div>
+        <div class="btns" style="margin-top:10px">
+          ${['Paid', 'Built', 'Installed'].includes(o.status) && Number(o.paid) > 0 ? `<button class="btn sm bad" data-a="refund" data-ref="${esc(o.ref)}">Refund</button>` : ''}
+          ${!CLOSED.includes(o.status) ? `<button class="btn sm bad" data-a="cancel" data-ref="${esc(o.ref)}">Cancel booking</button>` : ''}
+        </div><p class="small muted" style="margin-top:8px">Cancelled, Refunded and Not compatible free the founder slot on the website.</p></div>
+    </div>`;
+}
+
+function nextCard(o) {
+  const r = esc(o.ref);
+  const m = (k, label, primary) => `<button class="btn ${primary ? 'wa' : ''}" data-a="msg" data-k="${k}" data-ref="${r}">${primary ? waIcon() : ''}${label}${sent(o, k) ? ' ✓' : ''}</button>`;
+  const card = (step, what, p, btns) => `<div class="card next"><h4>${step}</h4><div class="what">${what}</div><p>${p}</p><div class="btns">${btns}</div></div>`;
+  switch (o.status) {
+    case 'New': {
+      const asked = sent(o, 'terima');
+      return card('Next · 1 of 5', o.photo ? 'Check their box' : asked ? 'Waiting for their box photo' : 'Say thanks, ask for the box photo',
+        asked ? `Look at their Settings → About photo (${esc(reasonGuess(o))} on the form). Android 10 or newer with 3 GB RAM or more fits.` : 'One tap opens WhatsApp with the message ready.',
+        (asked ? '' : m('terima', 'Thanks + ask for photo', true)) +
+        (o.photo ? `<a class="btn" href="${esc(o.photo)}">View photo</a>` : '') +
+        `<button class="btn good" data-a="fits" data-ref="${r}">✓ Box fits</button><button class="btn bad" data-a="nofit" data-ref="${r}">✕ Doesn’t fit</button>` +
+        (asked && !o.photo ? m('nudgePhoto', 'Send a reminder') : ''));
+    }
+    case 'Box checked': {
+      const told = sent(o, 'serasi');
+      return card('Next · 2 of 5', told ? `Waiting for ${rm(amount(o))}` : 'Send the price and your bank details',
+        told ? `Sent ${span(waited(sentAt(o, 'serasi')))} ago. When the receipt comes, record the payment.` : `${esc(pkgName(o))}${onsite(o) ? ' + on-site install' : ''}: ${rm(amount(o))}.`,
+        (told ? '' : m('serasi', 'Price + bank details', true)) +
+        `<button class="btn ${told ? 'primary' : ''}" data-a="pay" data-ref="${r}">Record payment</button>` + (told ? m('nudgePay', 'Send a reminder') : ''));
+    }
+    case 'Paid':
+      return card('Next · 3 of 5', 'Build their app', 'J7 Studio opens on your computer with their name, plate and edition filled in. Build, then mark it built.',
+        (sent(o, 'bayar') ? '' : m('bayar', 'Payment received', true)) +
+        `<a class="btn" href="${esc(studioLink(o))}">Open in J7 Studio</a><button class="btn primary" data-a="built" data-ref="${r}">Mark as built</button>`);
+    case 'Built':
+      return card('Next · 4 of 5', o.installDate ? `Install ${esc(when(o.installDate))}` : 'Agree an install date',
+        o.installDate ? `${onsite(o) ? 'On-site, at their car.' : 'Remote, over WhatsApp.'} After installing, mark it installed.` : 'Ask them for a time on WhatsApp, then save it in Install date below.',
+        `<button class="btn" data-a="chat" data-ref="${r}">Ask for a time</button>` + m('pasang', 'Install-day message', !!o.installDate && !sent(o, 'pasang')) +
+        `<button class="btn primary" data-a="installed" data-ref="${r}">Mark as installed</button>`);
+    case 'Installed': {
+      const t = statusAt(o, 'Installed');
+      const ready = !t || waited(t) >= 3 * DAY;
+      return card('Done ✓', sent(o, 'testimoni') ? 'All done' : ready ? 'Ask how it’s going' : 'Installed', sent(o, 'testimoni') ? 'Review asked. Nothing else to do.' : ready ? 'A screenshot and one line from a happy owner sells the next round.' : `In ${span(3 * DAY - waited(t))}, ask for a review.`,
+        sent(o, 'testimoni') ? '' : m('testimoni', 'Ask for a review', ready));
+    }
+    case 'Not compatible':
+      return card('Closed', 'Box doesn’t fit', 'The slot is free again.', (sent(o, 'takSerasi') ? '' : m('takSerasi', 'Tell them', true)) + `<button class="btn" data-a="reopen" data-ref="${r}">Reopen</button>`);
+    default:
+      return card('Closed', o.status, 'The slot is free again.', (o.status === 'Refunded' && !sent(o, 'refund') ? m('refund', 'Confirm the refund', true) : '') + `<button class="btn" data-a="reopen" data-ref="${r}">Reopen</button>`);
+  }
+}
+
+function studioLink(o) {
+  const q = new URLSearchParams({
+    name: `${firstName(o)}'s J7`, owner: o.greeting || o.name, plate: o.plate,
+    edition: pkgName(o) === 'Pro' ? 'premium' : 'standard', daytile: /^Sun/i.test(o.dayTile) ? 'sun' : 'prayer',
+    car: o.variant && !/not sure/i.test(o.variant) ? `Jaecoo ${o.variant}` : 'Jaecoo J7 AWD',
+    notes: `Booking ${o.ref} · ${o.package} · ${showPhone(o.phone)}`,
+  });
+  return `${STUDIO}#/new?${q}`;
+}
+
+function detailsText(o) {
+  return [
+    o.ref, `Owner: ${o.name}${o.greeting ? ` (on screen: ${o.greeting})` : ''}`, `Plate: ${o.plate}`, `WhatsApp: ${showPhone(o.phone)}`,
+    `Car: ${[o.variant, o.colour].filter(Boolean).join(', ')}`, `Box: Android ${o.android}, ${o.ram}${o.box ? ', ' + o.box : ''}`,
+    `Package: ${o.package} → ${pkgName(o) === 'Pro' ? 'Premium' : 'Standard'} edition`, `Install: ${o.install}`,
+    `Map: ${o.nav} · Music: ${o.music} · Daily: ${o.dayTile} · Greeting: ${o.language}`, o.driver2 && `Second driver: ${o.driver2}`, o.notes && `Notes: ${o.notes}`,
+  ].filter(Boolean).join('\n');
+}
+
+const waIcon = () => '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4a.5.5 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.4.8 3.2.6a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>';
+
+// ------------------------------------------------------------------ modals
+
+function modal(html) {
+  const m = document.getElementById('modal');
+  m.innerHTML = html ? `<div class="scrim" data-a="scrim"><div class="modal" role="dialog">${html}</div></div>` : '';
+  const first = m.querySelector('[autofocus]');
+  if (first) first.focus();
+}
+
+function messageModal(ref, key, extra = {}) {
+  const o = byRef(ref);
+  const m = MSGS[key];
+  const l = S.msgLang || lang(o);
+  S.msg = { ref, key, extra, lang: l };
+  modal(`<h3>${m.label}</h3>
+    <div style="display:flex;align-items:center;gap:10px"><span class="small muted" style="flex:1">To ${esc(o.name)} · ${esc(showPhone(o.phone))}</span>
+      <div class="seg"><button class="${l === 'ms' ? 'on' : ''}" data-a="msg-lang" data-l="ms">BM</button><button class="${l === 'en' ? 'on' : ''}" data-a="msg-lang" data-l="en">EN</button></div></div>
+    <textarea class="input msgbox" id="msgtext">${esc(m[l](o, extra))}</textarea>
+    ${S.qr && QR_MSGS.includes(key) ? `<div class="qrsend"><img src="${esc(S.qr.img)}" alt="Your DuitNow QR"><div>
+      <b>Send the QR as a picture too</b><span class="small muted">The link is in the message. A picture is easier: copy it and paste it in the chat, or long-press it on your phone to share.</span>
+      <div class="btns"><button class="btn" data-a="copy-qr">Copy QR</button></div></div></div>` : ''}
+    <div class="btns"><button class="btn ghost" data-a="close-modal">Cancel</button><button class="btn" data-a="copy-msg">Copy</button><button class="btn wa" data-a="send-msg">${waIcon()}Open WhatsApp</button></div>
+    <p class="small muted">WhatsApp opens with this text. Press send there. On a phone with both WhatsApp apps, choose <b>WhatsApp Business</b>.</p>`);
+}
+
+function promptModal(title, body, fields, okLabel, onOk, danger) {
+  S.onOk = onOk;
+  modal(`<h3>${title}</h3>${body ? `<p class="muted">${body}</p>` : ''}${fields || ''}
+    <div class="btns"><button class="btn ghost" data-a="close-modal">Cancel</button><button class="btn ${danger ? 'bad' : 'primary'}" data-a="ok">${okLabel}</button></div>`);
+}
+
+function settingsModal() {
+  const s = S.settings;
+  const f = (k, label, ph, hint) => `<label class="f">${label}<input class="input" name="${k}" value="${esc(s[k])}" placeholder="${esc(ph)}">${hint ? `<small>${hint}</small>` : ''}</label>`;
+  modal(`<h3>Settings</h3><p class="muted small">These go into your messages. Saved in your Google script, never on the website.</p>
+    <form id="settings" class="stack" style="display:grid;gap:10px">
+      ${f('sign', 'Your name (signs the first message)', 'Iskandar')}
+      <div class="g2">${f('bank', 'Bank', 'e.g. Maybank')}${f('account', 'Account number', 'e.g. 1234 5678 9012')}</div>
+      ${f('holder', 'Account holder name', 'As shown in the bank')}
+      ${f('duitnow', 'DuitNow ID (optional)', 'e.g. 018-716 2505', 'Your phone, IC or business number registered with DuitNow')}
+      <div class="f">DuitNow QR (optional)<div id="qrset">${qrSetHtml()}</div>
+        <small>A screenshot of the DuitNow QR in your bank app (for example MAE → DuitNow QR → Receive), cropped to the code. It goes into the payment messages. Anyone with the link can see it, like any payment QR.</small></div>
+      <div class="g2">${f('window', 'Install window', '14–22 Nov')}${f('onsite', 'On-site install fee (RM)', '50')}</div>
+    </form>
+    <div class="btns"><button class="btn ghost" data-a="close-modal">Cancel</button><button class="btn primary" data-a="save-settings">Save</button></div>
+    ${S.sheet ? `<p class="small muted"><a href="${esc(S.sheet)}">Open the Sheet</a> for the Dashboard and every column.</p>` : ''}`);
+}
+
+function qrSetHtml(busy) {
+  return `<div class="qrset">${S.qr ? `<img src="${esc(S.qr.img)}" alt="Your DuitNow QR">` : '<div class="qrnone">No QR yet</div>'}<div>
+    <span class="small muted">${busy ? 'Saving…' : S.qr ? 'Customers get this QR in the payment messages.' : 'PNG or JPG.'}</span>
+    <div class="btns"><label class="btn">${S.qr ? 'Change' : 'Add your QR'}<input type="file" id="qrfile" accept="image/png,image/jpeg" hidden></label>
+    ${S.qr ? '<button class="btn ghost" data-a="qr-remove">Remove</button>' : ''}</div></div></div>`;
+}
+
+/** A picture file as a data URL, at most 1600 px across, PNG so the code stays sharp. */
+function shrink(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error('Couldn’t read that file.'));
+    r.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('That file isn’t a PNG or JPG picture.'));
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        // Already small enough: send it as it is (redrawing a PNG makes it bigger).
+        if (k === 1 && /^data:image\/(png|jpeg);base64,/.test(r.result) && r.result.length < 1.5e6) return resolve(r.result);
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        const g = c.getContext('2d');
+        g.fillStyle = '#fff';
+        g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(img, 0, 0, c.width, c.height);
+        const png = c.toDataURL('image/png');
+        resolve(png.length < 1.5e6 ? png : c.toDataURL('image/jpeg', 0.92));
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+async function setQr(data) {
+  const box = document.getElementById('qrset');
+  if (box) box.innerHTML = qrSetHtml(true);
+  try {
+    S.qr = await call('adminQr', data);
+    toast(data ? 'QR saved' : 'QR removed');
+  } catch (e) { toast(e.message, true); }
+  if (box) box.innerHTML = qrSetHtml();
+  render();
+}
+
+function addModal() {
+  modal(`<h3>Add a booking</h3><p class="muted small">For someone who booked by WhatsApp or in person. It takes a founder slot like a website booking.</p>
+    <form id="add" style="display:grid;gap:10px">
+      <div class="g2"><label class="f">Name<input class="input" name="name" required autofocus></label><label class="f">Name on screen<input class="input" name="greeting" placeholder="optional"></label></div>
+      <div class="g2"><label class="f">Country<select class="input" name="country"><option value="MY">Malaysia</option><option value="SG">Singapore</option></select></label><label class="f">State<input class="input" name="state" placeholder="e.g. Selangor (Malaysia)"></label></div>
+      <div class="g2"><label class="f">WhatsApp<input class="input" name="phone" inputmode="tel" placeholder="012-345 6789 or +65 9123 4567" required></label><label class="f">Plate<input class="input" name="plate" placeholder="WXY 1234 or SBA 1234 G" required style="text-transform:uppercase"></label></div>
+      <div class="g2"><label class="f">Package<select class="input" name="package"><option>Standard RM59</option><option>Pro RM89</option></select></label>
+        <label class="f">Install<select class="input" name="install"><option>Remote (WhatsApp)</option><option>On-site Klang Valley +RM50</option></select></label></div>
+      <div class="g2"><label class="f">Car<select class="input" name="variant"><option>J7 AWD</option><option>J7 2WD</option><option>J7 SHS (PHEV)</option><option>Not sure</option></select></label>
+        <label class="f">Messages in<select class="input" name="lang"><option value="ms">Bahasa Malaysia</option><option value="en">English</option></select></label></div>
+      <div class="g2"><label class="f">Android<input class="input" name="android" placeholder="e.g. 13"></label><label class="f">RAM<input class="input" name="ram" placeholder="e.g. 4 GB"></label></div>
+      <label class="f">Notes<textarea class="input" name="notes" style="min-height:60px"></textarea></label>
+    </form>
+    <div class="btns"><button class="btn ghost" data-a="close-modal">Cancel</button><button class="btn primary" data-a="save-add">Add booking</button></div>`);
+}
+
+// ------------------------------------------------------------------ actions
+
+function openWhatsApp(phone, text) {
+  // A plain string: Google strips "comments" from this page and reads // inside a `template` as one.
+  window.open('https://wa.me/' + intl(phone) + (text ? '?text=' + encodeURIComponent(text) : ''), '_blank');
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const t = document.createElement('textarea');
+    t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+  }
+  toast('Copied');
+}
+
+const A = {
+  refresh: () => load(),
+  tab: (el) => { S.tab = el.dataset.k; render(); },
+  filter: (el) => { S.filter = el.dataset.k; render(); },
+  open: (el) => { S.open = el.dataset.ref; markSeen(S.open); render(); renderDetail(); if (!matchMedia('(max-width:979px)').matches) document.getElementById('detail').scrollTop = 0; },
+  close: () => { S.open = null; render(); renderDetail(); },
+  settings: settingsModal,
+  add: addModal,
+  scrim: (el, e) => { if (e.target === el) modal(''); },
+  'close-modal': () => modal(''),
+  'copy-details': (el) => copy(detailsText(byRef(el.dataset.ref))),
+  chat: (el) => { const o = byRef(el.dataset.ref); openWhatsApp(o.phone, lang(o) === 'en' ? `Hi ${firstName(o)} 👋 ` : `Salam ${firstName(o)} 👋 `); },
+  msg: (el) => { S.msgLang = null; messageModal(el.dataset.ref, el.dataset.k); },
+  'msg-lang': (el) => { S.msgLang = el.dataset.l; messageModal(S.msg.ref, S.msg.key, S.msg.extra); },
+  'copy-msg': () => copy(document.getElementById('msgtext').value),
+  'send-msg': async () => {
+    const o = byRef(S.msg.ref);
+    openWhatsApp(o.phone, document.getElementById('msgtext').value);
+    const key = S.msg.key;
+    modal('');
+    await save(o.ref, { message: key }, 'Opened WhatsApp · noted in the history');
+  },
+  fits: async (el) => {
+    const o = await save(el.dataset.ref, { status: 'Box checked' }, 'Box fits ✓');
+    messageModal(o.ref, 'serasi');
+  },
+  nofit: (el) => {
+    const o = byRef(el.dataset.ref);
+    promptModal('Box doesn’t fit', 'Frees the founder slot. Then send them a short, kind message.',
+      `<label class="f">Why (goes in the message)<input class="input" id="reason" value="${esc(reasonGuess(o))}" autofocus></label>`, 'Doesn’t fit', async () => {
+        const reason = document.getElementById('reason').value.trim() || reasonGuess(o);
+        modal('');
+        await save(o.ref, { status: 'Not compatible', note: `Doesn't fit: ${reason}` });
+        messageModal(o.ref, 'takSerasi', { reason });
+      }, true);
+  },
+  pay: (el) => {
+    const o = byRef(el.dataset.ref);
+    promptModal('Record payment', `Check the receipt in WhatsApp first. Price: ${rm(amount(o))}.`,
+      `<label class="f">Amount received (RM)<input class="input" id="amt" type="number" inputmode="decimal" value="${amount(o)}" autofocus></label>`, 'Paid ✓', async () => {
+        const paid = Number(document.getElementById('amt').value);
+        if (!(paid > 0)) return toast('Enter the amount', true);
+        modal('');
+        const n = await save(o.ref, { paid, status: 'Paid' }, `${rm(paid)} recorded`);
+        messageModal(n.ref, 'bayar');
+      });
+  },
+  built: (el) => save(el.dataset.ref, { status: 'Built' }, 'Marked built'),
+  installed: (el) => save(el.dataset.ref, { status: 'Installed' }, 'Installed 🎉'),
+  reopen: (el) => save(el.dataset.ref, { status: 'New' }, 'Reopened'),
+  cancel: (el) => promptModal('Cancel this booking?', 'The founder slot becomes free on the website. You can reopen it later.', '', 'Cancel booking',
+    async () => { modal(''); await save(el.dataset.ref, { status: 'Cancelled' }, 'Cancelled'); }, true),
+  refund: (el) => {
+    const o = byRef(el.dataset.ref);
+    promptModal('Refund', `Send ${rm(o.paid)} back from your bank first, then mark it here.`, '', 'Mark refunded', async () => {
+      modal('');
+      await save(o.ref, { status: 'Refunded', note: `Refunded ${rm(o.paid)}` });
+      messageModal(o.ref, 'refund');
+    }, true);
+  },
+  ok: () => S.onOk && S.onOk(),
+  'save-paid': (el) => save(el.dataset.ref, { paid: document.getElementById('paid').value }, 'Payment saved'),
+  'save-when': (el) => save(el.dataset.ref, { installDate: document.getElementById('when').value }, 'Install date saved'),
+  'save-status': (el) => save(el.dataset.ref, { status: document.getElementById('status').value }, 'Status set'),
+  'qr-remove': () => setQr(''),
+  'copy-qr': async () => {
+    try {
+      const img = document.querySelector('.qrsend img');
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      const png = await new Promise((ok) => c.toBlob(ok, 'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+      toast('QR copied. Paste it in the WhatsApp chat');
+    } catch (e) {
+      toast('This browser won’t copy pictures here. Right-click or long-press the QR instead.', true);
+    }
+  },
+  'save-settings': async () => {
+    const data = Object.fromEntries(new FormData(document.getElementById('settings')));
+    try {
+      S.settings = await call('adminSettings', data);
+      modal('');
+      render();
+      renderDetail();
+      toast('Settings saved');
+    } catch (e) { toast(e.message, true); }
+  },
+  'save-add': async () => {
+    const f = document.getElementById('add');
+    if (!f.reportValidity()) return;
+    try {
+      const d = await call('adminAdd', Object.fromEntries(new FormData(f)));
+      put(d.order);
+      S.left = d.left;
+      markSeen(d.order.ref);
+      modal('');
+      S.open = d.order.ref;
+      render();
+      renderDetail();
+      toast('Booking added');
+    } catch (e) { toast(e.message, true); }
+  },
+};
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-a]');
+  if (!el) return;
+  const fn = A[el.dataset.a];
+  if (!fn) return;
+  if (el.tagName === 'A') return;
+  // A click inside a popup isn't a click on its background: leave it alone (the QR file picker needs that).
+  if (el.dataset.a === 'scrim' && e.target !== el) return;
+  e.preventDefault();
+  Promise.resolve(fn(el, e)).catch(() => {});
+});
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'qrfile' || !e.target.files[0]) return;
+  shrink(e.target.files[0]).then(setQr, (err) => toast(err.message, true));
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'q') { S.q = e.target.value; S.focusQ = true; render(); S.focusQ = false; }
+});
+document.addEventListener('focusout', (e) => {
+  const t = e.target;
+  if (t.id !== 'notes') return;
+  const o = byRef(t.dataset.ref);
+  if (!o || t.value === (o.myNotes || '')) return;
+  call('adminSave', o.ref, { myNotes: t.value }).then((d) => {
+    put(d.order);
+    const s = document.getElementById('notes-saved');
+    if (s) { s.hidden = false; setTimeout(() => { s.hidden = true; }, 1800); }
+  }).catch((err) => toast(err.message, true));
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('modal').innerHTML) modal('');
+  else if (S.open) A.close();
+});
+
+let toastTimer;
+function toast(text, err) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast' + (err ? ' err' : '');
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, err ? 5000 : 2200);
+}
+
+// Which bookings you've opened, so new ones get a dot. Kept in this browser only.
+function seen() {
+  try { return new Set(JSON.parse(localStorage.getItem('j7-seen') || '[]')); } catch (e) { return new Set(S.orders.map((o) => o.ref)); }
+}
+function markSeen(ref) {
+  try { const s = seen(); s.add(ref); localStorage.setItem('j7-seen', JSON.stringify([...s])); } catch (e) { /* private mode */ }
+}
+function markFirstVisit() {
+  try { if (localStorage.getItem('j7-seen') === null) localStorage.setItem('j7-seen', JSON.stringify(S.orders.map((o) => o.ref))); } catch (e) { /* private mode */ }
+}
+
+// New bookings show up without reloading: every minute while the page is open.
+setInterval(() => {
+  if (document.visibilityState === 'visible' && !S.busy && !document.getElementById('modal').innerHTML) load(true);
+}, 60000);
+
+load();
+</script>
+</body>
+</html>

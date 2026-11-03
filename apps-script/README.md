@@ -20,5 +20,21 @@ The website's form saves each booking as a row in a Google Sheet that only you c
 - **Photos** of Settings → About go into the Drive folder "J7 Launcher booking photos".
 - Use the **Google Sheets app** on your phone to update orders on the go.
 
+## J7 Orders: your order portal
+A private page that runs on top of the same Sheet. It has a **To do** list (who's waiting for you, and for what), **Orders** with search, **Money**, and each order's next step as a button. It also has the WhatsApp messages ready in BM or EN, payments, install dates, your notes, a history of each order, and an **Open in J7 Studio** link.
+
+**Add it (about 5 minutes):**
+1. In the Sheet: **Extensions → Apps Script**.
+2. **Code.gs:** replace everything with the new `Code.gs`.
+3. Click **+ → Script** and name it `Admin`. Paste `Admin.gs`.
+4. Click **+ → HTML** and name it `Portal`. Paste `Portal.html`.
+5. Click **Save**. Run **setup** once and allow the new permission (it checks it's you, using your email address).
+6. **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy.** The website address doesn't change.
+7. Open your web app address with `?page=admin` on the end, signed in to this Google account. Bookmark it, and on your phone use **Add to Home screen**.
+
+Only you can use it. Anyone else who opens that address sees "This page is private", and every save checks again on Google's side. Your bank details (Settings in the portal) stay in your script, never on the website.
+
+**If it says "This page is private" to you:** your browser is probably signed in to more than one Google account. Open it in a window signed in only to this account, such as an incognito window or a separate Chrome profile. If that still doesn't work, use **Deploy → Test deployments**, copy that address (it ends in `/dev`), and add `?page=admin`. Only people who can edit the script can open that one.
+
 ## If you change Code.gs later
 Use **Deploy → Manage deployments → Edit → Version: New version → Deploy**. That keeps the same URL, so the website doesn't need changing.

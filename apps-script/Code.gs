@@ -5,6 +5,8 @@
  * Each visit to the website adds an anonymous row to Visits (time, a random browser id, where the
  * visitor came from, language, phone or computer), which the Dashboard counts.
  *
+ * Your order portal (Admin.gs + Portal.html) is the same web app with ?page=admin, for you only.
+ *
  * Setup is in README.md next to this file. Run setup() once after pasting.
  */
 const SHEET = 'Bookings';
@@ -28,12 +30,13 @@ function setup() {
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#fff1e6');
   sh.setFrozenRows(1);
   sh.setFrozenColumns(3);
+  columns_(sh);
   sh.getRange('C2:C').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(STATUSES, true).build());
   sh.getRange('Y2:Y').setNumberFormat('0.00');
   // Phone numbers keep their leading 0.
   sh.getRange('F2:F').setNumberFormat('@');
   const colours = { 'New': '#fff4cc', 'Box checked': '#dbeafe', 'Not compatible': '#fde2e2', 'Paid': '#d1fae5', 'Built': '#e0e7ff', 'Installed': '#bbf7d0', 'Refunded': '#f3f4f6', 'Cancelled': '#f3f4f6' };
-  const range = sh.getRange('A2:Z');
+  const range = sh.getRange('A2:AD');
   sh.setConditionalFormatRules(Object.keys(colours).map((s) => SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied(`=$C2="${s}"`).setBackground(colours[s]).setRanges([range]).build()));
 
@@ -105,7 +108,8 @@ function doPost(e) {
       photo, b.siteLanguage, '', ''].map(clean));
     MailApp.sendEmail(Session.getEffectiveUser().getEmail(), `J7 booking ${clean(b.ref)} · ${clean(b.plate)} · ${clean(b.package)}`,
       `${clean(b.name)} (${clean(b.phone)}) booked ${clean(b.package)}.\n${clean(b.variant)}, ${clean(b.colour)}, Android ${clean(b.android)}, ${clean(b.ram)}.\n\n` +
-      `Open the Sheet: ${SpreadsheetApp.getActiveSpreadsheet().getUrl()}`);
+      `Open your orders: ${ScriptApp.getService().getUrl()}?page=admin
+Or the Sheet: ${SpreadsheetApp.getActiveSpreadsheet().getUrl()}`);
     return json({ ok: true, left: slotsLeft() });
   } catch (err) {
     return json({ ok: false });
@@ -120,6 +124,7 @@ function doPost(e) {
  */
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.page === 'admin') return adminPage();
   if (p.v === '1') recordVisit(p);
   return json({ slots: SLOTS, left: slotsLeft(), recent: recentBookings() });
 }
