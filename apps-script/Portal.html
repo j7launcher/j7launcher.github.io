@@ -433,13 +433,13 @@ const MSGS = {
   },
   serasi: {
     label: 'Fits: price + bank',
-    ms: (o) => `Berita baik ${firstName(o)}: box anda serasi ✅\n\nPakej *${pkgName(o)}*${onsite(o) ? ' + pasang di lokasi' : ''}: *RM${amount(o)}*\nBayaran melalui DuitNow / pindahan:\n${bankText('ms')}\n\nHantar resit di sini, dan saya mula bina app dengan plat ${o.plate} anda. Pemasangan ${S.settings.window}.`,
-    en: (o) => `Good news ${firstName(o)}: your box fits ✅\n\nPackage *${pkgName(o)}*${onsite(o) ? ' + on-site install' : ''}: *RM${amount(o)}*\nPay by DuitNow / bank transfer:\n${bankText('en')}\n\nSend the receipt here and I’ll start building your app with plate ${o.plate}. Installs ${S.settings.window}.`,
+    ms: (o) => `Berita baik ${firstName(o)}: box anda serasi ✅\n\nPakej *${pkgName(o)}*${onsite(o) ? ' + pasang di lokasi' : ''}: *RM${amount(o)}*, bayar sekali sahaja (bukan bulanan)\nBayaran melalui DuitNow / pindahan:\n${bankText('ms')}\n\nHantar resit di sini, dan saya mula bina app dengan plat ${o.plate} anda. Pemasangan ${S.settings.window}.`,
+    en: (o) => `Good news ${firstName(o)}: your box fits ✅\n\nPackage *${pkgName(o)}*${onsite(o) ? ' + on-site install' : ''}: *RM${amount(o)}*, a one-time payment (not monthly)\nPay by DuitNow / bank transfer:\n${bankText('en')}\n\nSend the receipt here and I’ll start building your app with plate ${o.plate}. Installs ${S.settings.window}.`,
   },
   nudgePay: {
     label: 'Reminder: payment',
-    ms: (o) => `Salam ${firstName(o)} 👋 Tempahan ${o.ref} (${o.plate}) masih menunggu bayaran *RM${amount(o)}*. Harga founder dikekalkan untuk anda. Ada soalan, tanya je 🙏` + (S.qr ? `\n\n${qrLine('ms')}` : ''),
-    en: (o) => `Hi ${firstName(o)} 👋 Booking ${o.ref} (${o.plate}) is still waiting for the payment of *RM${amount(o)}*. Your founder price is kept for you. Any questions, just ask 🙏` + (S.qr ? `\n\n${qrLine('en')}` : ''),
+    ms: (o) => `Salam ${firstName(o)} 👋 Tempahan ${o.ref} (${o.plate}) masih menunggu bayaran sekali *RM${amount(o)}*. Harga founder dikekalkan untuk anda. Ada soalan, tanya je 🙏` + (S.qr ? `\n\n${qrLine('ms')}` : ''),
+    en: (o) => `Hi ${firstName(o)} 👋 Booking ${o.ref} (${o.plate}) is still waiting for the one-time payment of *RM${amount(o)}*. Your founder price is kept for you. Any questions, just ask 🙏` + (S.qr ? `\n\n${qrLine('en')}` : ''),
   },
   takSerasi: {
     label: 'Doesn’t fit',
