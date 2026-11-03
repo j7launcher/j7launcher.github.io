@@ -204,15 +204,21 @@
             <label><span data-i18n="q.greet">Nama di skrin (ucapan)</span><input id="f-greet" name="greeting" data-i18n-ph="ph.greet" placeholder="cth. Iskandar"></label>
           </div>
           <div class="row2">
-            <label><span data-i18n="q.phone">No. WhatsApp</span><input id="f-phone" name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="01X-XXX XXXX"></label>
+            <label><span data-i18n="q.phone">No. WhatsApp</span><input id="f-phone" name="phone" type="tel" required inputmode="tel" autocomplete="tel" placeholder="01X-XXX XXXX" maxlength="18"></label>
             <label><span data-i18n="q.email">E-mel (pilihan)</span><input id="f-email" name="email" type="email" autocomplete="email"></label>
           </div>
-          <label><span data-i18n="q.state">Negeri</span>
-            <select id="f-state" name="state" required>
-              <option value="" data-i18n="opt.choose">Pilih…</option>
-              <option>Johor</option><option>Kedah</option><option>Kelantan</option><option>Kuala Lumpur</option><option>Labuan</option><option>Melaka</option><option>Negeri Sembilan</option><option>Pahang</option><option>Perak</option><option>Perlis</option><option>Pulau Pinang</option><option>Putrajaya</option><option>Sabah</option><option>Sarawak</option><option>Selangor</option><option>Terengganu</option>
-            </select>
-          </label>
+          <div class="row2">
+            <label><span data-i18n="q.country">Negara</span>
+              <select id="f-country" name="country" required><option value="MY">Malaysia</option><option value="SG">Singapore</option></select>
+            </label>
+            <label id="state-wrap"><span data-i18n="q.state">Negeri</span>
+              <select id="f-state" name="state" required>
+                <option value="" data-i18n="opt.choose">Pilih…</option>
+                <option>Johor</option><option>Kedah</option><option>Kelantan</option><option>Kuala Lumpur</option><option>Labuan</option><option>Melaka</option><option>Negeri Sembilan</option><option>Pahang</option><option>Perak</option><option>Perlis</option><option>Pulau Pinang</option><option>Putrajaya</option><option>Sabah</option><option>Sarawak</option><option>Selangor</option><option>Terengganu</option>
+              </select>
+            </label>
+          </div>
+          <p class="fine" data-i18n-html="q.other">Untuk pemilik di Malaysia dan Singapura. Negara lain? <a href="https://wa.me/60187162505">WhatsApp saya dahulu</a>.</p>
         </fieldset>
 
         <fieldset>
@@ -229,7 +235,13 @@
               </select>
             </label>
           </div>
-          <label><span data-i18n="q.plate">Nombor plat (dilukis pada kereta di skrin)</span><input id="f-plate" name="plate" required autocapitalize="characters" placeholder="VIPS 803" maxlength="12"></label>
+          <label><span data-i18n="q.plate">Nombor plat (dilukis pada kereta di skrin)</span><input id="f-plate" name="plate" required autocapitalize="characters" placeholder="VIPS 803" maxlength="14"></label>
+          <div class="plate-row">
+            <label id="pstyle-wrap" hidden><span data-i18n="q.pstyle">Warna plat depan</span>
+              <select id="f-pstyle" name="plateStyle"><option value="black" data-i18n="opt.pblack">Hitam, huruf putih</option><option value="white" data-i18n="opt.pwhite">Putih, huruf hitam</option></select>
+            </label>
+            <div class="pv"><span data-i18n="q.preview">Di skrin</span><b id="plate-pv" class="pv-plate">VIPS 803</b></div>
+          </div>
         </fieldset>
 
         <fieldset>

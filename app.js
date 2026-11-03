@@ -104,10 +104,16 @@ const EN = {
   'q.phone': 'WhatsApp number',
   'q.email': 'Email (optional)',
   'q.state': 'State',
+  'q.country': 'Country',
+  'q.other': 'For owners in Malaysia and Singapore. Another country? <a href="https://wa.me/60187162505">WhatsApp me first</a>.',
   'g2': '2 · Car',
   'q.variant': 'J7 variant',
   'q.colour': 'Colour',
   'q.plate': 'Plate number (drawn on the car on screen)',
+  'q.pstyle': 'Front plate colour',
+  'opt.pblack': 'Black, white letters',
+  'opt.pwhite': 'White, black letters',
+  'q.preview': 'On screen',
   'g3': '3 · Android box',
   'q.android': 'Android version',
   'q.box': 'Box brand / model (if you know it)',
@@ -171,6 +177,8 @@ const MSG = {
     required: 'Sila isi ruangan bertanda merah.',
     plate: 'Nombor plat tak kelihatan betul (cth. VIPS 803 atau WXY 1234).',
     phone: 'No. WhatsApp tak kelihatan betul (cth. 012-345 6789).',
+    plateSG: 'Nombor plat tak kelihatan betul (cth. SBA 1234 G). Semak huruf terakhir.',
+    phoneSG: 'No. WhatsApp tak kelihatan betul (cth. +65 9123 4567).',
     closed: 'Ditutup',
     left: (n) => (n > 0 ? `${n} daripada 30 lagi` : 'Penuh'),
     ago: (min) => (min < 60 ? `${Math.max(1, min)} min lalu` : min < 1440 ? `${Math.floor(min / 60)} jam lalu` : `${Math.floor(min / 1440)} hari lalu`),
@@ -192,6 +200,8 @@ const MSG = {
     required: 'Please fill in the fields marked in red.',
     plate: 'The plate number doesn\'t look right (e.g. VIPS 803 or WXY 1234).',
     phone: 'The WhatsApp number doesn\'t look right (e.g. 012-345 6789).',
+    plateSG: 'The plate number doesn\'t look right (e.g. SBA 1234 G). Check the last letter.',
+    phoneSG: 'The WhatsApp number doesn\'t look right (e.g. +65 9123 4567).',
     closed: 'Closed',
     left: (n) => (n > 0 ? `${n} of 30 left` : 'Full'),
     ago: (min) => (min < 60 ? `${Math.max(1, min)} min ago` : min < 1440 ? `${Math.floor(min / 60)} h ago` : `${Math.floor(min / 1440)} days ago`),
@@ -324,16 +334,67 @@ function check() {
   out.className = 'result' + (kind ? ' ' + kind : '');
 }
 
-/* Plate as JPJ writes it: letters, a space, numbers, optional letter. */
-function cleanPlate(v) {
-  const s = v.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const m = s.match(/^([A-Z]{1,4})(\d{1,4})([A-Z]?)$/);
-  return m ? `${m[1]} ${m[2]}${m[3]}` : null;
+/*
+ * Bookings are for Malaysia and Singapore. Malaysia: JPJ style (WXY 1234, VIPS 803, PUTRAJAYA 1234,
+ * G1M 1234). Singapore: LTA style, ending in a check letter worked out from the rest (SBA 1234 G).
+ */
+const COUNTRY = {
+  MY: { phone: '01X-XXX XXXX', plate: 'VIPS 803' },
+  SG: { phone: '+65 9XXX XXXX', plate: 'SBA 1234 G' },
+};
+
+function cleanPlate(v, country) {
+  const typed = v.toUpperCase().replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  const s = typed.replace(/ /g, '');
+  if (country === 'SG') {
+    const m = s.match(/^([A-Z]{1,3})(\d{1,4})([A-Z])$/);
+    // One-letter series are rare and older: their check letter isn't verified.
+    if (!m || (m[1].length > 1 && sgCheckLetter(m[1], m[2]) !== m[3])) return null;
+    return `${m[1]} ${m[2]} ${m[3]}`;
+  }
+  const m = s.match(/^([A-Z]{1,4})(\d{1,4})([A-Z]?)$/) || s.match(/^(PUTRAJAYA|MALAYSIA|PATRIOT|SUKOM|XIIINAM|BAMBEE)(\d{1,4})()$/);
+  if (m) return `${m[1]} ${m[2]}${m[3] ? ' ' + m[3] : ''}`;
+  // Special series with digits in them (G1M 1234, 1M4U 88): typed with a space before the number.
+  return /^[A-Z0-9]*\d[A-Z0-9]* \d{1,4}$/.test(typed) && /[A-Z]/.test(typed) ? typed : null;
 }
 
-function cleanPhone(v) {
-  const d = v.replace(/\D/g, '').replace(/^60/, '0');
-  return /^01\d{8,9}$/.test(d) ? d : null;
+/** LTA's check letter: the last two letters and four digits, weighted 9 4 5 4 3 2, modulo 19. */
+function sgCheckLetter(letters, digits) {
+  const l = letters.slice(-2).padStart(2, '@');
+  const v = [...l].map((c) => (c === '@' ? 0 : c.charCodeAt(0) - 64)).concat([...digits.padStart(4, '0')].map(Number));
+  return 'AZYXUTSRPMLKJHGEDCB'[v.reduce((t, x, i) => t + x * [9, 4, 5, 4, 3, 2][i], 0) % 19];
+}
+
+/* Malaysia keeps 01XXXXXXXX (as before); Singapore mobiles are +65 8XXX / 9XXX. */
+function cleanPhone(v, country) {
+  const d = v.replace(/\D/g, '');
+  if (country === 'SG') {
+    const n = d.replace(/^65(?=\d{8}$)/, '');
+    return /^[89]\d{7}$/.test(n) ? `+65 ${n.slice(0, 4)} ${n.slice(4)}` : null;
+  }
+  const n = d.replace(/^60/, '0');
+  // 10 digits, or 11 for the 011 and 015 ranges.
+  return /^01(?:[15]\d{8}|[02-46-9]\d{7})$/.test(n) ? n : null;
+}
+
+/* Country switch: Singapore has no state list and a choice of plate colour. */
+function setCountry() {
+  const c = document.getElementById('f-country').value;
+  document.getElementById('state-wrap').hidden = c === 'SG';
+  document.getElementById('f-state').required = c !== 'SG';
+  document.getElementById('pstyle-wrap').hidden = c !== 'SG';
+  document.getElementById('f-phone').placeholder = COUNTRY[c].phone;
+  document.getElementById('f-plate').placeholder = COUNTRY[c].plate;
+  showPlate();
+}
+
+/** The plate as it will be drawn, while it's typed. */
+function showPlate() {
+  const c = document.getElementById('f-country').value;
+  const v = document.getElementById('f-plate').value;
+  const pv = document.getElementById('plate-pv');
+  pv.textContent = (v && (cleanPlate(v, c) || v.toUpperCase())) || COUNTRY[c].plate;
+  pv.classList.toggle('white', c === 'SG' && document.getElementById('f-pstyle').value === 'white');
 }
 
 /* A photo of Settings → About, shrunk so the Sheet can take it. */
@@ -365,13 +426,15 @@ async function submit(e) {
   err.textContent = '';
 
   let bad = [...form.querySelectorAll('[required]')].filter((el) => (el.type === 'checkbox' ? !el.checked : el.type === 'radio' ? !form.querySelector(`[name="${el.name}"]:checked`) : !el.value.trim()));
-  const plate = cleanPlate(f['plate'].value);
-  const phone = cleanPhone(f['phone'].value);
+  const country = f['country'].value;
+  const sg = country === 'SG';
+  const plate = cleanPlate(f['plate'].value, country);
+  const phone = cleanPhone(f['phone'].value, country);
   if (f['plate'].value && !plate) bad.push(f['plate']);
   if (f['phone'].value && !phone) bad.push(f['phone']);
   if (bad.length) {
     bad.forEach((el) => (el.type === 'radio' ? el.closest('.cards') : el).classList.add('invalid'));
-    err.textContent = !plate && f['plate'].value ? m.plate : !phone && f['phone'].value ? m.phone : m.required;
+    err.textContent = !plate && f['plate'].value ? (sg ? m.plateSG : m.plate) : !phone && f['phone'].value ? (sg ? m.phoneSG : m.phone) : m.required;
     bad[0].focus();
     return;
   }
@@ -389,7 +452,7 @@ async function submit(e) {
     greeting: f['greeting'].value.trim(),
     phone,
     email: f['email'].value.trim(),
-    state: f['state'].value,
+    state: sg ? 'Singapore' : f['state'].value,
     variant: f['variant'].value,
     colour: f['colour'].value,
     plate,
@@ -403,7 +466,8 @@ async function submit(e) {
     language: f['language'].value,
     driver2: f['driver2'].value.trim(),
     install: f['install'].value,
-    notes: f['notes'].value.trim(),
+    // The Sheet has no plate-colour column: Singapore's goes at the start of the notes.
+    notes: [sg && `[Singapore · ${f['plateStyle'].value} plate]`, f['notes'].value.trim()].filter(Boolean).join(' '),
   };
 
   if (SHEET_URL) {
@@ -456,6 +520,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (r) r.checked = true;
   }));
   document.getElementById('form').addEventListener('submit', submit);
+  document.getElementById('f-country').addEventListener('change', setCountry);
+  ['f-plate', 'f-pstyle'].forEach((id) => document.getElementById(id).addEventListener('input', showPlate));
+  setCountry();
   tick();
   setInterval(tick, 30000);
   loadSlots();
